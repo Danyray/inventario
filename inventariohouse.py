@@ -5,7 +5,37 @@ import time
 
 # --- CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="Inventario Ignacio-House", layout="wide")
-st.title("📦 INVENTARIO IGNACIO-HOUSE")
+
+# --- SISTEMA DE AUTENTICACIÓN ---
+def login():
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+
+    if not st.session_state.authenticated:
+        st.title("🔐 Acceso al Sistema")
+        
+        # Diccionario de usuarios autorizados
+        usuarios_validos = {
+            "ignacio": "yosa0325",
+            "joseilys": "yosa0325"
+        }
+
+        with st.form("login_form"):
+            user = st.text_input("Usuario").lower().strip()
+            password = st.text_input("Contraseña", type="password")
+            submit = st.form_submit_button("Entrar")
+
+            if submit:
+                if user in usuarios_validos and usuarios_validos[user] == password:
+                    st.session_state.authenticated = True
+                    st.session_state.user = user.capitalize()
+                    st.success(f"Bienvenido/a {st.session_state.user}")
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    st.error("Usuario o contraseña incorrectos")
+        return False
+    return True
 
 # --- FUNCIONES DE BASE DE DATOS ---
 def conectar_db():
@@ -66,95 +96,61 @@ def borrar_producto(id_prod):
     conn.commit()
     conn.close()
 
-# Inicializar DB
-crear_tabla()
+# --- LÓGICA PRINCIPAL ---
+if login():
+    # Solo se ejecuta si el login es exitoso
+    st.title("📦 INVENTARIO IGNACIO-HOUSE")
+    st.write(f"Sesión iniciada como: **{st.session_state.user}**")
+    
+    if st.button("Cerrar Sesión"):
+        st.session_state.authenticated = False
+        st.rerun()
 
-# --- FORMULARIO DE AGREGAR ---
-with st.expander("➕ HACER CLIC AQUÍ PARA AGREGAR NUEVO PRODUCTO", expanded=False):
-    col1, col2 = st.columns(2)
-    with col1:
-        modulo_sel = st.selectbox("¿En qué lista?", ["Comida", "Hogar", "Por Comprar"])
-        nombre_input = st.text_input("Nombre del producto")
-    with col2:
-        precio_input = st.number_input("Precio ($)", min_value=0.0, step=0.1)
-        cantidad_input = st.number_input("Cantidad", min_value=1, step=1)
+    crear_tabla()
 
-    if st.button("🚀 GUARDAR PRODUCTO", use_container_width=True):
-        if nombre_input:
-            nombre_cap = nombre_input.strip().capitalize()
-            if guardar_producto(modulo_sel, nombre_cap, precio_input, cantidad_input):
-                st.toast(f'¡{nombre_cap} añadido!', icon='✅')
-                st.success("✨ GUARDADO EXITOSO")
-                time.sleep(1)
-                st.rerun()
-            else:
-                st.warning(f"⚠️ '{nombre_cap}' ya existe en {modulo_sel}.")
-        else:
-            st.error("Escribe un nombre.")
+    # --- FORMULARIO DE AGREGAR ---
+    with st.expander("➕ HACER CLIC AQUÍ PARA AGREGAR NUEVO PRODUCTO", expanded=False):
+        col1, col2 = st.columns(2)
+        with col1:
+            modulo_sel = st.selectbox("¿En qué lista?", ["Comida", "Hogar", "Por Comprar"])
+            nombre_input = st.text_input("Nombre del producto")
+        with col2:
+            precio_input = st.number_input("Precio ($)", min_value=0.0, step=0.1)
+            cantidad_input = st.number_input("Cantidad", min_value=1, step=1)
 
-st.divider()
-
-# --- TABLAS Y CONTENIDO ---
-df_total = leer_datos()
-tabs = st.tabs(["🍕 Comida", "🏠 Hogar", "🛒 Por Comprar"])
-nombres_modulos = ["Comida", "Hogar", "Por Comprar"]
-
-for i, tab in enumerate(tabs):
-    nombre_mod = nombres_modulos[i]
-    with tab:
-        df = df_total[df_total['modulo'] == nombre_mod].copy()
-        if not df.empty:
-            st.subheader(f"Listado de {nombre_mod}")
-            
-            columnas_config = {
-                "id": st.column_config.NumberColumn("🆔 ID", disabled=True, format="%d"),
-                "modulo": None,
-                "nombre": st.column_config.TextColumn("Producto", disabled=True),
-                "precio": st.column_config.NumberColumn("Precio ($)", min_value=0, format="$%.2f"),
-                "cantidad": st.column_config.NumberColumn("Cantidad", min_value=0),
-            }
-            
-            df_vista = df[["id", "nombre", "precio", "cantidad"]]
-            edited_df = st.data_editor(
-                df_vista, 
-                column_config=columnas_config, 
-                use_container_width=True, 
-                hide_index=True, 
-                key=f"ed_{nombre_mod}"
-            )
-
-            if st.button(f"💾 Guardar cambios en {nombre_mod}", key=f"btn_save_{nombre_mod}"):
-                for _, row in edited_df.iterrows():
-                    actualizar_dato(row['id'], 'precio', row['precio'])
-                    actualizar_dato(row['id'], 'cantidad', row['cantidad'])
-                st.toast('Cambios guardados', icon='💾')
-                st.success("✅ Cambios aplicados.")
-                time.sleep(1)
-                st.rerun()
-
-            st.divider()
-            c1, c2 = st.columns(2)
-            with c1:
-                st.write("### 🗑️ Eliminar")
-                id_del = st.number_input("ID para borrar", min_value=0, key=f"id_del_{nombre_mod}", step=1)
-                if st.button(f"🗑️ Eliminar ID {id_del}", key=f"btn_del_{nombre_mod}"):
-                    borrar_producto(id_del)
-                    st.toast('Producto eliminado', icon='🗑️')
+        if st.button("🚀 GUARDAR PRODUCTO", use_container_width=True):
+            if nombre_input:
+                nombre_cap = nombre_input.strip().capitalize()
+                if guardar_producto(modulo_sel, nombre_cap, precio_input, cantidad_input):
+                    st.toast(f'¡{nombre_cap} añadido!', icon='✅')
+                    st.success("✨ GUARDADO EXITOSO")
+                    time.sleep(1)
                     st.rerun()
-            
-            if nombre_mod == "Por Comprar":
-                with c2:
-                    st.write("### 🚚 Traspasar")
-                    id_mov = st.number_input("ID para mover a Comida", min_value=0, key="id_mov_pc", step=1)
-                    if st.button(f"🚚 Mover ID {id_mov}", key="btn_mov_pc"):
-                        mover_a_comida(id_mov)
-                        st.toast('Movido a Comida', icon='🚚')
-                        st.rerun()
+                else:
+                    st.warning(f"⚠️ '{nombre_cap}' ya existe en {modulo_sel}.")
+            else:
+                st.error("Escribe un nombre.")
 
-            st.divider()
-            # Cálculo de subtotal y métrica corregida en una sola línea
-            df['Subtotal'] = df['precio'] * df['cantidad']
-            suma_total = df['Subtotal'].sum()
-            st.metric(label=f"Total {nombre_mod}", value=f"${suma_total:,.2f}")
-        else:
-            st.info(f"No hay productos en {nombre_mod}.")
+    st.divider()
+
+    # --- TABLAS Y CONTENIDO ---
+    df_total = leer_datos()
+    tabs = st.tabs(["🍕 Comida", "🏠 Hogar", "🛒 Por Comprar"])
+    nombres_modulos = ["Comida", "Hogar", "Por Comprar"]
+
+    for i, tab in enumerate(tabs):
+        nombre_mod = nombres_modulos[i]
+        with tab:
+            df = df_total[df_total['modulo'] == nombre_mod].copy()
+            if not df.empty:
+                st.subheader(f"Listado de {nombre_mod}")
+                
+                columnas_config = {
+                    "id": st.column_config.NumberColumn("🆔 ID", disabled=True, format="%d"),
+                    "modulo": None,
+                    "nombre": st.column_config.TextColumn("Producto", disabled=True),
+                    "precio": st.column_config.NumberColumn("Precio ($)", min_value=0, format="$%.2f"),
+                    "cantidad": st.column_config.NumberColumn("Cantidad", min_value=0),
+                }
+                
+                df_vista = df[["id", "
