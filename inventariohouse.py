@@ -34,13 +34,12 @@ def leer_datos():
 def guardar_producto(m, n, p, c):
     conn = conectar_db()
     cursor = conn.cursor()
-    # Verificamos si ya existe el nombre en ese módulo
     cursor.execute("SELECT id FROM productos WHERE nombre = ? AND modulo = ?", (n, m))
     existe = cursor.fetchone()
     
     if existe:
         conn.close()
-        return False # No se agrega si ya existe
+        return False 
     
     cursor.execute("INSERT INTO productos (modulo, nombre, precio, cantidad) VALUES (?, ?, ?, ?)", (m, n, p, c))
     conn.commit()
@@ -87,7 +86,7 @@ if st.sidebar.button("Guardar en Inventario"):
             st.sidebar.success(f"✅ LISTO: {nombre_cap} guardado.")
             st.rerun()
         else:
-            st.sidebar.warning(f"⚠️ El producto '{nombre_cap}' ya existe en {modulo_sel}. Modifícalo en la lista.")
+            st.sidebar.warning(f"⚠️ El producto '{nombre_cap}' ya existe en {modulo_sel}.")
     else:
         st.sidebar.error("Escribe un nombre")
 
@@ -99,18 +98,20 @@ def mostrar_pestaña(nombre_modulo, pestaña):
     with pestaña:
         df = df_total[df_total['modulo'] == nombre_modulo].copy()
         if not df.empty:
-            # 1. Edición de valores
             st.subheader(f"Listado de {nombre_modulo}")
             
-            # Usamos st.data_editor para permitir cambios rápidos
+            # CONFIGURACIÓN DE COLUMNAS: Ahora el ID es visible y está marcado como "ID #"
             columnas_config = {
-                "id": None, # Ocultar ID
-                "modulo": None, # Ocultar Módulo
+                "id": st.column_config.NumberColumn("🆔 ID", disabled=True, format="%d"),
+                "modulo": None, # Ocultamos la columna módulo porque ya estamos en su pestaña
                 "nombre": st.column_config.TextColumn("Producto", disabled=True),
                 "precio": st.column_config.NumberColumn("Precio ($)", min_value=0, format="$%.2f"),
                 "cantidad": st.column_config.NumberColumn("Cantidad", min_value=0),
             }
             
+            # Reordenamos las columnas para que el ID sea lo primero que se vea
+            df = df[["id", "nombre", "precio", "cantidad"]]
+
             edited_df = st.data_editor(
                 df, 
                 column_config=columnas_config, 
@@ -119,33 +120,32 @@ def mostrar_pestaña(nombre_modulo, pestaña):
                 key=f"editor_{nombre_modulo}"
             )
 
-            # Botón para guardar cambios de la tabla si hubo ediciones
             if st.button(f"Confirmar cambios en {nombre_modulo}", key=f"save_{nombre_modulo}"):
                 for index, row in edited_df.iterrows():
                     actualizar_dato(row['id'], 'precio', row['precio'])
                     actualizar_dato(row['id'], 'cantidad', row['cantidad'])
-                st.success("Cambios aplicados.")
+                st.success("Cambios aplicados correctamente.")
                 st.rerun()
 
-            # 2. Acciones específicas por fila
             st.divider()
             col_del, col_move = st.columns(2)
             
             with col_del:
-                id_borrar = st.number_input(f"ID para eliminar", min_value=0, key=f"del_id_{nombre_modulo}")
-                if st.button(f"🗑️ Eliminar Producto", key=f"btn_del_{nombre_modulo}"):
+                st.write("### 🗑️ Eliminar")
+                id_borrar = st.number_input(f"Ingresa el ID para borrar", min_value=0, key=f"del_id_{nombre_modulo}", step=1)
+                if st.button(f"Eliminar Producto con ID {id_borrar}", key=f"btn_del_{nombre_modulo}"):
                     borrar_producto(id_borrar)
                     st.rerun()
 
             if nombre_modulo == "Por Comprar":
                 with col_move:
-                    id_mover = st.number_input(f"ID para pasar a Comida", min_value=0, key="move_id")
-                    if st.button(f"🚚 Mover a Inventario Comida", key="btn_move"):
+                    st.write("### 🚚 Traspasar")
+                    id_mover = st.number_input(f"Ingresa el ID para pasar a Comida", min_value=0, key="move_id", step=1)
+                    if st.button(f"Mover ID {id_mover} a Comida", key="btn_move"):
                         mover_a_comida(id_mover)
-                        st.success("Producto movido con éxito.")
+                        st.success("Producto movido.")
                         st.rerun()
             
-            # 3. Métricas
             st.divider()
             df['Subtotal'] = df['precio'] * df['cantidad']
             total = df['Subtotal'].sum()
