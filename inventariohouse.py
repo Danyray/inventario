@@ -4,7 +4,7 @@ import pandas as pd
 
 # --- CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="Inventario Local", layout="wide")
-st.title("📦 Inventario con Base de Datos SQL (Gratis)")
+st.title("📦 INVENTARIO IGNACIO-HOUSE")
 
 # --- FUNCIONES DE BASE DE DATOS (SQLite) ---
 def conectar_db():
