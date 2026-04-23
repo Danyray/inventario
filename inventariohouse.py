@@ -36,11 +36,9 @@ def guardar_producto(m, n, p, c):
     cursor = conn.cursor()
     cursor.execute("SELECT id FROM productos WHERE nombre = ? AND modulo = ?", (n, m))
     existe = cursor.fetchone()
-    
     if existe:
         conn.close()
         return False 
-    
     cursor.execute("INSERT INTO productos (modulo, nombre, precio, cantidad) VALUES (?, ?, ?, ?)", (m, n, p, c))
     conn.commit()
     conn.close()
@@ -70,45 +68,42 @@ def borrar_producto(id_prod):
 # Inicializar DB
 crear_tabla()
 
-# --- NUEVA SECCIÓN: FORMULARIO MÁS VISIBLE ---
-# En lugar de usar la barra lateral (flechas), usamos un expander en el centro
+# --- FORMULARIO DE AGREGAR (CENTRAL Y VISIBLE) ---
 with st.expander("➕ HACER CLIC AQUÍ PARA AGREGAR NUEVO PRODUCTO", expanded=False):
-    st.subheader("Datos del Nuevo Producto")
     col1, col2 = st.columns(2)
-    
     with col1:
         modulo_sel = st.selectbox("¿En qué lista?", ["Comida", "Hogar", "Por Comprar"])
-        nombre_input = st.text_input("Nombre del producto (ej: Harina, Jabón)")
-        
+        nombre_input = st.text_input("Nombre del producto")
     with col2:
-        precio_input = st.number_input("Precio unitario ($)", min_value=0.0, step=0.1)
-        cantidad_input = st.number_input("Cantidad inicial", min_value=1, step=1)
+        precio_input = st.number_input("Precio ($)", min_value=0.0, step=0.1)
+        cantidad_input = st.number_input("Cantidad", min_value=1, step=1)
 
-    if st.button("🚀 GUARDAR AHORA", use_container_width=True):
+    if st.button("🚀 GUARDAR PRODUCTO", use_container_width=True):
         if nombre_input:
             nombre_cap = nombre_input.strip().capitalize()
-            fue_guardado = guardar_producto(modulo_sel, nombre_cap, precio_input, cantidad_input)
-            
-            if fue_guardado:
-                st.success(f"✅ LISTO: {nombre_cap} guardado con éxito.")
+            if guardar_producto(modulo_sel, nombre_cap, precio_input, cantidad_input):
+                st.success(f"✅ LISTO: {nombre_cap} guardado.")
                 st.rerun()
             else:
-                st.warning(f"⚠️ El producto '{nombre_cap}' ya existe en {modulo_sel}.")
+                st.warning(f"⚠️ '{nombre_cap}' ya existe en {modulo_sel}.")
         else:
-            st.error("Escribe un nombre antes de guardar.")
+            st.error("Escribe un nombre.")
 
 st.divider()
 
-# --- CUERPO PRINCIPAL (TABLAS) ---
+# --- TABLAS Y CONTENIDO ---
 df_total = leer_datos()
-tab1, tab2, tab3 = st.tabs(["🍕 Comida", "🏠 Hogar", "🛒 Por Comprar"])
+tabs = st.tabs(["🍕 Comida", "🏠 Hogar", "🛒 Por Comprar"])
+nombres_modulos = ["Comida", "Hogar", "Por Comprar"]
 
-def mostrar_pestaña(nombre_modulo, pestaña):
-    with pestaña:
-        df = df_total[df_total['modulo'] == nombre_modulo].copy()
+for i, tab in enumerate(tabs):
+    nombre_mod = nombres_modulos[i]
+    with tab:
+        df = df_total[df_total['modulo'] == nombre_mod].copy()
         if not df.empty:
-            st.subheader(f"Listado de {nombre_modulo}")
+            st.subheader(f"Listado de {nombre_mod}")
             
+            # Configuración de edición
             columnas_config = {
                 "id": st.column_config.NumberColumn("🆔 ID", disabled=True, format="%d"),
                 "modulo": None,
@@ -117,35 +112,39 @@ def mostrar_pestaña(nombre_modulo, pestaña):
                 "cantidad": st.column_config.NumberColumn("Cantidad", min_value=0),
             }
             
-            df = df[["id", "nombre", "precio", "cantidad"]]
-
+            df_vista = df[["id", "nombre", "precio", "cantidad"]]
             edited_df = st.data_editor(
-                df, 
+                df_vista, 
                 column_config=columnas_config, 
                 use_container_width=True, 
                 hide_index=True, 
-                key=f"editor_{nombre_modulo}"
+                key=f"ed_{nombre_mod}"
             )
 
-            if st.button(f"💾 Guardar cambios de cantidad/precio en {nombre_modulo}", key=f"save_{nombre_modulo}"):
-                for index, row in edited_df.iterrows():
+            if st.button(f"💾 Guardar cambios en {nombre_mod}", key=f"btn_save_{nombre_mod}"):
+                for _, row in edited_df.iterrows():
                     actualizar_dato(row['id'], 'precio', row['precio'])
                     actualizar_dato(row['id'], 'cantidad', row['cantidad'])
                 st.success("Cambios aplicados.")
                 st.rerun()
 
             st.divider()
-            col_del, col_move = st.columns(2)
-            
-            with col_del:
-                st.write("### 🗑️ Eliminar")
-                id_borrar = st.number_input(f"ID para borrar", min_value=0, key=f"del_id_{nombre_modulo}", step=1)
-                if st.button(f"Eliminar ID {id_borrar}", key=f"btn_del_{nombre_modulo}"):
-                    borrar_producto(id_borrar)
+            c1, c2 = st.columns(2)
+            with c1:
+                id_del = st.number_input("ID para borrar", min_value=0, key=f"id_del_{nombre_mod}", step=1)
+                if st.button(f"🗑️ Eliminar ID {id_del}", key=f"btn_del_{nombre_mod}"):
+                    borrar_producto(id_del)
                     st.rerun()
+            
+            if nombre_mod == "Por Comprar":
+                with c2:
+                    id_mov = st.number_input("ID para mover a Comida", min_value=0, key="id_mov", step=1)
+                    if st.button(f"🚚 Mover ID {id_mov}", key="btn_mov"):
+                        mover_a_comida(id_mov)
+                        st.rerun()
 
-            if nombre_modulo == "Por Comprar":
-                with col_move:
-                    st.write("### 🚚 Traspasar")
-                    id_mover = st.number_input(f"ID para pasar a Comida", min_value=0, key="move_id", step=1)
-                    if st.button(
+            st.divider()
+            df['Subtotal'] = df['precio'] * df['cantidad']
+            st.metric(f"Total {nombre_mod}", f"${df['Subtotal'].sum():,.2f}")
+        else:
+            st.info(f"No hay productos en {nombre_mod}.")
