@@ -8,132 +8,127 @@ st.set_page_config(page_title="Inventario Ignacio-House", layout="wide")
 
 # --- SISTEMA DE AUTENTICACIÓN ---
 def login():
-    if "authenticated" not in st.session_state:
-        st.session_state.authenticated = False
+    if "auth" not in st.session_state:
+        st.session_state.auth = False
 
-    if not st.session_state.authenticated:
+    if not st.session_state.auth:
         st.title("🔐 Acceso al Sistema")
-        usuarios_validos = {"ignacio": "yosa0325", "joseilys": "yosa0325"}
+        validos = {"ignacio": "yosa0325", "joseilys": "yosa0325"}
 
         with st.form("login_form"):
-            user = st.text_input("Usuario").lower().strip()
-            password = st.text_input("Contraseña", type="password")
-            submit = st.form_submit_button("Entrar")
-
-            if submit:
-                if user in usuarios_validos and usuarios_validos[user] == password:
-                    st.session_state.authenticated = True
-                    st.session_state.user = user.capitalize()
+            u = st.text_input("Usuario").lower().strip()
+            p = st.text_input("Contraseña", type="password")
+            if st.form_submit_button("Entrar"):
+                if u in validos and validos[u] == p:
+                    st.session_state.auth = True
+                    st.session_state.user = u.capitalize()
                     st.success(f"Bienvenido/a {st.session_state.user}")
                     time.sleep(1)
                     st.rerun()
                 else:
-                    st.error("Usuario o contraseña incorrectos")
+                    st.error("Usuario o clave incorrectos")
         return False
     return True
 
 # --- FUNCIONES DE BASE DE DATOS ---
-def conectar_db():
+def conectar():
     return sqlite3.connect('inventario.db', check_same_thread=False)
 
-def crear_tabla():
-    conn = conectar_db()
-    cursor = conn.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS productos (
+def crear_db():
+    conn = conectar()
+    conn.execute('''CREATE TABLE IF NOT EXISTS productos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             modulo TEXT, nombre TEXT, precio REAL, cantidad INTEGER)''')
     conn.commit()
     conn.close()
 
-def leer_datos():
-    conn = conectar_db()
-    df = pd.read_sql_query("SELECT * FROM productos", conn)
-    conn.close()
-    return df
-
-def guardar_producto(m, n, p, c):
-    conn = conectar_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id FROM productos WHERE nombre = ? AND modulo = ?", (n, m))
-    if cursor.fetchone():
-        conn.close()
-        return False 
-    cursor.execute("INSERT INTO productos (modulo, nombre, precio, cantidad) VALUES (?, ?, ?, ?)", (m, n, p, c))
+def db_query(sql, params=()):
+    conn = conectar()
+    res = pd.read_sql_query(sql, conn, params=params) if "SELECT" in sql.upper() else conn.execute(sql, params)
     conn.commit()
     conn.close()
-    return True
+    return res
 
-def actualizar_dato(id_prod, columna, nuevo_valor):
-    conn = conectar_db()
-    cursor = conn.cursor()
-    cursor.execute(f"UPDATE productos SET {columna} = ? WHERE id = ?", (nuevo_valor, id_prod))
-    conn.commit()
-    conn.close()
-
-def mover_a_comida(id_prod):
-    conn = conectar_db()
-    cursor = conn.cursor()
-    cursor.execute("UPDATE productos SET modulo = 'Comida' WHERE id = ?", (id_prod,))
-    conn.commit()
-    conn.close()
-
-def borrar_producto(id_prod):
-    conn = conectar_db()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM productos WHERE id = ?", (id_prod,))
-    conn.commit()
-    conn.close()
-
-# --- LÓGICA PRINCIPAL ---
+# --- LÓGICA DE LA APP ---
 if login():
-    crear_tabla()
+    crear_db()
     st.title("📦 INVENTARIO IGNACIO-HOUSE")
-    st.sidebar.write(f"Sesión: **{st.session_state.user}**")
+    
+    # Barra lateral para cerrar sesión
+    st.sidebar.write(f"Usuario: **{st.session_state.user}**")
     if st.sidebar.button("Cerrar Sesión"):
-        st.session_state.authenticated = False
+        st.session_state.auth = False
         st.rerun()
 
-    # --- FORMULARIO AGREGAR ---
-    with st.expander("➕ AGREGAR NUEVO PRODUCTO", expanded=False):
+    # Formulario Agregar
+    with st.expander("➕ AGREGAR PRODUCTO", expanded=False):
         c1, c2 = st.columns(2)
-        with c1:
-            mod_sel = st.selectbox("Lista", ["Comida", "Hogar", "Por Comprar"])
-            nom_in = st.text_input("Nombre")
-        with c2:
-            pre_in = st.number_input("Precio ($)", min_value=0.0, step=0.1)
-            can_in = st.number_input("Cantidad", min_value=1, step=1)
+        mod = c1.selectbox("Lista", ["Comida", "Hogar", "Por Comprar"])
+        nom = c1.text_input("Nombre")
+        pre = c2.number_input("Precio ($)", min_value=0.0, step=0.1)
+        can = c2.number_input("Cantidad", min_value=1, step=1)
 
         if st.button("🚀 GUARDAR", use_container_width=True):
-            if nom_in:
-                nom_cap = nom_in.strip().capitalize()
-                if guardar_producto(mod_sel, nom_cap, pre_in, can_in):
-                    st.toast(f'¡{nom_cap} guardado!', icon='✅')
-                    st.success("✨ GUARDADO EXITOSO")
+            if nom:
+                n_cap = nom.strip().capitalize()
+                # Verificar duplicados
+                exist = db_query("SELECT id FROM productos WHERE nombre=? AND modulo=?", (n_cap, mod))
+                if not exist.empty:
+                    st.warning("Ese producto ya existe en esta lista.")
+                else:
+                    db_query("INSERT INTO productos (modulo, nombre, precio, cantidad) VALUES (?,?,?,?)", (mod, n_cap, pre, can))
+                    st.toast("¡Guardado!")
+                    st.success("✨ LISTO")
                     time.sleep(1)
                     st.rerun()
-                else:
-                    st.warning(f"⚠️ '{nom_cap}' ya existe en {mod_sel}.")
             else:
                 st.error("Falta el nombre.")
 
     st.divider()
 
-    # --- TABLAS ---
-    df_total = leer_datos()
-    nombres_mod = ["Comida", "Hogar", "Por Comprar"]
+    # Pestañas de Visualización
+    df_all = db_query("SELECT * FROM productos")
+    nombres_tabs = ["Comida", "Hogar", "Por Comprar"]
     tabs = st.tabs(["🍕 Comida", "🏠 Hogar", "🛒 Por Comprar"])
 
     for i, tab in enumerate(tabs):
-        nombre_tab = nombres_mod[i]
+        m_name = nombres_tabs[i]
         with tab:
-            df = df_total[df_total['modulo'] == nombre_tab].copy()
+            df = df_all[df_all['modulo'] == m_name].copy()
             if not df.empty:
-                col_cfg = {
-                    "id": st.column_config.NumberColumn("🆔 ID", disabled=True, format="%d"),
+                # Editor de datos
+                cfg = {
+                    "id": st.column_config.NumberColumn("🆔 ID", disabled=True),
                     "nombre": st.column_config.TextColumn("Producto", disabled=True),
-                    "precio": st.column_config.NumberColumn("Precio ($)", min_value=0, format="$%.2f"),
-                    "cantidad": st.column_config.NumberColumn("Cantidad", min_value=0),
+                    "precio": st.column_config.NumberColumn("Precio", min_value=0, format="$%.2f"),
+                    "cantidad": st.column_config.NumberColumn("Cant", min_value=0)
                 }
-                
+                # Dividimos la línea del editor para que no de error de sintaxis
                 df_v = df[["id", "nombre", "precio", "cantidad"]]
-                edit_df = st.data_editor(df_v, column_config=col_cfg, use_container_width=True, hide_index=True, key=f"ed_{nombre_
+                k_ed = f"editor_{m_name.replace(' ', '')}"
+                
+                edit_df = st.data_editor(df_v, column_config=cfg, use_container_width=True, hide_index=True, key=k_ed)
+
+                if st.button(f"💾 Guardar cambios {m_name}", key=f"s_{m_name}"):
+                    for _, r in edit_df.iterrows():
+                        db_query("UPDATE productos SET precio=?, cantidad=? WHERE id=?", (r['precio'], r['cantidad'], r['id']))
+                    st.toast("Actualizado")
+                    st.rerun()
+
+                st.divider()
+                cx, cy = st.columns(2)
+                id_d = cx.number_input("ID a borrar", min_value=0, key=f"d_{m_name}", step=1)
+                if cx.button(f"🗑️ Eliminar {id_d}", key=f"bd_{m_name}"):
+                    db_query("DELETE FROM productos WHERE id=?", (id_d,))
+                    st.rerun()
+                
+                if m_name == "Por Comprar":
+                    id_m = cy.number_input("ID a Inventario", min_value=0, key="m_pc", step=1)
+                    if cy.button("🚚 Traspasar", key="bm_pc"):
+                        db_query("UPDATE productos SET modulo='Comida' WHERE id=?", (id_m,))
+                        st.rerun()
+
+                df['Sub'] = df['precio'] * df['cantidad']
+                st.metric(f"Total {m_name}", f"${df['Sub'].sum():,.2f}")
+            else:
+                st.info("Sin productos registrados.")
