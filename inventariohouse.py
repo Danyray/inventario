@@ -1,109 +1,93 @@
 import streamlit as st
-from streamlit_gsheets import GSheetsConnection
+import sqlite3
 import pandas as pd
 
 # --- CONFIGURACIÓN DE LA PÁGINA ---
-st.set_page_config(page_title="Inventario Cloud", layout="wide")
+st.set_page_config(page_title="Inventario Local", layout="wide")
+st.title("📦 Inventario con Base de Datos SQL (Gratis)")
 
-st.title("📦 Mi Inventario en la Nube")
-st.markdown("Conectado a Google Sheets")
+# --- FUNCIONES DE BASE DE DATOS (SQLite) ---
+def conectar_db():
+    conn = sqlite3.connect('inventario.db', check_same_thread=False)
+    return conn
 
-# URL de tu hoja (La que me pasaste)
-URL_HOJA = "https://docs.google.com/spreadsheets/d/1IjIzhXc7MmLt3fcCB7ReRlK9s_68y0RGdrGzPU2YmHw/edit?usp=sharing"
-
-# 1. ESTABLECER CONEXIÓN
-# Esta conexión buscará los permisos en los "Secrets" de Streamlit
-conn = st.connection("gsheets", type=GSheetsConnection)
+def crear_tabla():
+    conn = conectar_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS productos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            modulo TEXT,
+            nombre TEXT,
+            precio REAL,
+            cantidad INTEGER
+        )
+    ''')
+    conn.commit()
+    conn.close()
 
 def leer_datos():
-    try:
-        # Leemos la hoja completa usando la conexión de Streamlit
-        df = conn.read(spreadsheet=URL_HOJA, ttl=0) # ttl=0 para que no guarde basura en cache
-        # Limpiar nombres de columnas: sin espacios y en minúsculas
-        df.columns = [str(c).strip().lower() for c in df.columns]
-        return df.dropna(how="all")
-    except Exception as e:
-        st.error(f"Error al leer datos: {e}")
-        return pd.DataFrame(columns=['id', 'modulo', 'nombre', 'precio', 'cantidad'])
+    conn = conectar_db()
+    df = pd.read_sql_query("SELECT * FROM productos", conn)
+    conn.close()
+    return df
 
-# --- BARRA LATERAL PARA AÑADIR ---
+def guardar_producto(m, n, p, c):
+    conn = conectar_db()
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO productos (modulo, nombre, precio, cantidad) VALUES (?, ?, ?, ?)", (m, n, p, c))
+    conn.commit()
+    conn.close()
+
+def borrar_producto(id_prod):
+    conn = conectar_db()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM productos WHERE id = ?", (id_prod,))
+    conn.commit()
+    conn.close()
+
+# Inicializar la base de datos al abrir
+crear_tabla()
+
+# --- INTERFAZ LATERAL ---
 st.sidebar.header("Añadir Producto")
 modulo_sel = st.sidebar.selectbox("Elegir Módulo", ["Comida", "Hogar", "Por Comprar"])
 nombre_input = st.sidebar.text_input("Nombre del producto")
 precio_input = st.sidebar.number_input("Precio ($)", min_value=0.0, step=0.1)
 cantidad_input = st.sidebar.number_input("Cantidad", min_value=1, step=1)
 
-if st.sidebar.button("Guardar"):
+if st.sidebar.button("Guardar en SQL"):
     if nombre_input:
-        df_actual = leer_datos()
-        
-        # Generar nuevo ID
-        nuevo_id = int(df_actual["id"].max() + 1) if not df_actual.empty else 1
-        
-        # Crear nueva fila
-        nueva_fila = pd.DataFrame([{
-            "id": nuevo_id,
-            "modulo": modulo_sel,
-            "nombre": nombre_input.capitalize(),
-            "precio": precio_input,
-            "cantidad": cantidad_input
-        }])
-        
-        # Concatenar y actualizar nube
-        df_final = pd.concat([df_actual, nueva_fila], ignore_index=True)
-        
-        try:
-            conn.update(spreadsheet=URL_HOJA, data=df_final)
-            st.sidebar.success(f"¡{nombre_input} guardado!")
-            st.rerun()
-        except Exception as e:
-            st.sidebar.error("Error de escritura. Revisa los 'Secrets' en Streamlit Cloud.")
-            st.info(f"Detalle técnico: {e}")
+        guardar_producto(modulo_sel, nombre_input.capitalize(), precio_input, cantidad_input)
+        st.sidebar.success(f"¡{nombre_input} guardado!")
+        st.rerun()
     else:
         st.sidebar.error("Escribe un nombre")
 
-# --- CUERPO PRINCIPAL CON PESTAÑAS ---
+# --- CUERPO PRINCIPAL ---
 tab1, tab2, tab3 = st.tabs(["🍕 Comida", "🏠 Hogar", "🛒 Por Comprar"])
+df_total = leer_datos()
 
-def mostrar_contenido(nombre_modulo, pestaña):
+def mostrar_pestaña(nombre_modulo, pestaña):
     with pestaña:
-        df_all = leer_datos()
-        if not df_all.empty and 'modulo' in df_all.columns:
-            df = df_all[df_all['modulo'] == nombre_modulo].copy()
-
+        if not df_total.empty:
+            df = df_total[df_total['modulo'] == nombre_modulo].copy()
             if not df.empty:
                 df['Subtotal'] = df['precio'] * df['cantidad']
-                vista_df = df[['id', 'nombre', 'precio', 'cantidad', 'Subtotal']].rename(
-                    columns={'nombre': 'Producto', 'precio': 'Precio', 'cantidad': 'Cantidad'}
-                )
-                
-                st.dataframe(vista_df.drop(columns=['id']), use_container_width=True, hide_index=True)
+                st.dataframe(df.drop(columns=['modulo']), use_container_width=True, hide_index=True)
                 
                 total = df['Subtotal'].sum()
-                st.metric(label=f"Total en {nombre_modulo}", value=f"${total:,.2f}")
-
-                # Eliminar
-                id_a_borrar = st.number_input(f"ID para eliminar en {nombre_modulo}", min_value=0, key=f"del_{nombre_modulo}")
-                if st.button(f"Eliminar ID {id_a_borrar}", key=f"btn_{nombre_modulo}"):
-                    df_final = df_all[df_all['id'] != id_a_borrar]
-                    conn.update(spreadsheet=URL_HOJA, data=df_final)
+                st.metric("Total", f"${total:,.2f}")
+                
+                id_borrar = st.number_input(f"ID a borrar en {nombre_modulo}", min_value=0, key=f"id_{nombre_modulo}")
+                if st.button(f"Eliminar", key=f"btn_{nombre_modulo}"):
+                    borrar_producto(id_borrar)
                     st.rerun()
             else:
-                st.info(f"Vacío en {nombre_modulo}.")
+                st.info(f"No hay nada en {nombre_modulo}")
         else:
-            st.warning("Asegúrate de que la primera fila del Excel tenga: id, modulo, nombre, precio, cantidad")
+            st.info("La base de datos está vacía.")
 
-# Llamar a la función para cada pestaña
-mostrar_contenido("Comida", tab1)
-mostrar_contenido("Hogar", tab2)
-mostrar_contenido("Por Comprar", tab3)
-
-# --- TRASPASO ---
-st.divider()
-if st.button("✅ Mover todo de 'Por Comprar' a 'Comida'"):
-    df_all = leer_datos()
-    if not df_all.empty:
-        df_all.loc[df_all['modulo'] == 'Por Comprar', 'modulo'] = 'Comida'
-        conn.update(spreadsheet=URL_HOJA, data=df_all)
-        st.success("¡Movido!")
-        st.rerun()
+mostrar_pestaña("Comida", tab1)
+mostrar_pestaña("Hogar", tab2)
+mostrar_pestaña("Por Comprar", tab3)
