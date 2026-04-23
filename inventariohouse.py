@@ -13,12 +13,7 @@ def login():
 
     if not st.session_state.authenticated:
         st.title("🔐 Acceso al Sistema")
-        
-        # Diccionario de usuarios autorizados
-        usuarios_validos = {
-            "ignacio": "yosa0325",
-            "joseilys": "yosa0325"
-        }
+        usuarios_validos = {"ignacio": "yosa0325", "joseilys": "yosa0325"}
 
         with st.form("login_form"):
             user = st.text_input("Usuario").lower().strip()
@@ -44,15 +39,9 @@ def conectar_db():
 def crear_tabla():
     conn = conectar_db()
     cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS productos (
+    cursor.execute('''CREATE TABLE IF NOT EXISTS productos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            modulo TEXT,
-            nombre TEXT,
-            precio REAL,
-            cantidad INTEGER
-        )
-    ''')
+            modulo TEXT, nombre TEXT, precio REAL, cantidad INTEGER)''')
     conn.commit()
     conn.close()
 
@@ -66,8 +55,7 @@ def guardar_producto(m, n, p, c):
     conn = conectar_db()
     cursor = conn.cursor()
     cursor.execute("SELECT id FROM productos WHERE nombre = ? AND modulo = ?", (n, m))
-    existe = cursor.fetchone()
-    if existe:
+    if cursor.fetchone():
         conn.close()
         return False 
     cursor.execute("INSERT INTO productos (modulo, nombre, precio, cantidad) VALUES (?, ?, ?, ?)", (m, n, p, c))
@@ -98,59 +86,54 @@ def borrar_producto(id_prod):
 
 # --- LÓGICA PRINCIPAL ---
 if login():
-    # Solo se ejecuta si el login es exitoso
+    crear_tabla()
     st.title("📦 INVENTARIO IGNACIO-HOUSE")
-    st.write(f"Sesión iniciada como: **{st.session_state.user}**")
-    
-    if st.button("Cerrar Sesión"):
+    st.sidebar.write(f"Sesión: **{st.session_state.user}**")
+    if st.sidebar.button("Cerrar Sesión"):
         st.session_state.authenticated = False
         st.rerun()
 
-    crear_tabla()
+    # --- FORMULARIO AGREGAR ---
+    with st.expander("➕ AGREGAR NUEVO PRODUCTO", expanded=False):
+        c1, c2 = st.columns(2)
+        with c1:
+            mod_sel = st.selectbox("Lista", ["Comida", "Hogar", "Por Comprar"])
+            nom_in = st.text_input("Nombre")
+        with c2:
+            pre_in = st.number_input("Precio ($)", min_value=0.0, step=0.1)
+            can_in = st.number_input("Cantidad", min_value=1, step=1)
 
-    # --- FORMULARIO DE AGREGAR ---
-    with st.expander("➕ HACER CLIC AQUÍ PARA AGREGAR NUEVO PRODUCTO", expanded=False):
-        col1, col2 = st.columns(2)
-        with col1:
-            modulo_sel = st.selectbox("¿En qué lista?", ["Comida", "Hogar", "Por Comprar"])
-            nombre_input = st.text_input("Nombre del producto")
-        with col2:
-            precio_input = st.number_input("Precio ($)", min_value=0.0, step=0.1)
-            cantidad_input = st.number_input("Cantidad", min_value=1, step=1)
-
-        if st.button("🚀 GUARDAR PRODUCTO", use_container_width=True):
-            if nombre_input:
-                nombre_cap = nombre_input.strip().capitalize()
-                if guardar_producto(modulo_sel, nombre_cap, precio_input, cantidad_input):
-                    st.toast(f'¡{nombre_cap} añadido!', icon='✅')
+        if st.button("🚀 GUARDAR", use_container_width=True):
+            if nom_in:
+                nom_cap = nom_in.strip().capitalize()
+                if guardar_producto(mod_sel, nom_cap, pre_in, can_in):
+                    st.toast(f'¡{nom_cap} guardado!', icon='✅')
                     st.success("✨ GUARDADO EXITOSO")
                     time.sleep(1)
                     st.rerun()
                 else:
-                    st.warning(f"⚠️ '{nombre_cap}' ya existe en {modulo_sel}.")
+                    st.warning(f"⚠️ '{nom_cap}' ya existe en {mod_sel}.")
             else:
-                st.error("Escribe un nombre.")
+                st.error("Falta el nombre.")
 
     st.divider()
 
-    # --- TABLAS Y CONTENIDO ---
+    # --- TABLAS ---
     df_total = leer_datos()
+    nombres_mod = ["Comida", "Hogar", "Por Comprar"]
     tabs = st.tabs(["🍕 Comida", "🏠 Hogar", "🛒 Por Comprar"])
-    nombres_modulos = ["Comida", "Hogar", "Por Comprar"]
 
     for i, tab in enumerate(tabs):
-        nombre_mod = nombres_modulos[i]
+        nombre_tab = nombres_mod[i]
         with tab:
-            df = df_total[df_total['modulo'] == nombre_mod].copy()
+            df = df_total[df_total['modulo'] == nombre_tab].copy()
             if not df.empty:
-                st.subheader(f"Listado de {nombre_mod}")
-                
-                columnas_config = {
+                col_cfg = {
                     "id": st.column_config.NumberColumn("🆔 ID", disabled=True, format="%d"),
-                    "modulo": None,
                     "nombre": st.column_config.TextColumn("Producto", disabled=True),
                     "precio": st.column_config.NumberColumn("Precio ($)", min_value=0, format="$%.2f"),
                     "cantidad": st.column_config.NumberColumn("Cantidad", min_value=0),
                 }
                 
-                df_vista = df[["id", "
+                df_v = df[["id", "nombre", "precio", "cantidad"]]
+                edit_df = st.data_editor(df_v, column_config=col_cfg, use_container_width=True, hide_index=True, key=f"ed_{nombre_
