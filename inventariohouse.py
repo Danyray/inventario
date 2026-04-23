@@ -7,7 +7,7 @@ st.set_page_config(page_title="Inventario Cloud", layout="wide")
 st.title("📦 Mi Inventario en la Nube (Google Sheets)")
 
 # URL de tu Google Sheet (Copia tu link aquí)
-URL_HOJA = "TU_URL_DE_GOOGLE_SHEET_AQUI"
+URL_HOJA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS4rohy8Dpub3YeAB-8wAsWfajoo3ytrk0CLtc8RLcBnYe2nbqxSrHndnNoDzAJ4DUEE1ud-UcNQZix/pubhtml"
 
 # 1. CONEXIÓN A GOOGLE SHEETS
 conn = st.connection("gsheets", type=GSheetsConnection)
