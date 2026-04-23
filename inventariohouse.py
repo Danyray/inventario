@@ -58,7 +58,7 @@ def login():
 
 # --- LÓGICA DE LA APP ---
 if login():
-    st.title("📦 INVENTARIO IGNACIO-HOUSE")
+    st.title("📦 INVENTARIO MI❤️AMOR JYI")
     
     # Barra lateral
     st.sidebar.write(f"Usuario: **{st.session_state.user}**")
