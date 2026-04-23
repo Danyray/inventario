@@ -5,7 +5,7 @@ from datetime import datetime
 from supabase import create_client, Client
 
 # --- CONFIGURACIÓN DE LA PÁGINA ---
-st.set_page_config(page_title="Inventario Ignacio-House", layout="wide")
+st.set_page_config(page_title="Inventario MI❤️AMOR JYI", layout="wide")
 
 # --- ESTILOS PERSONALIZADOS (CSS) ---
 st.markdown("""
