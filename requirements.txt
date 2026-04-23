@@ -39,3 +39,6 @@ streamlit
 st-gsheets-connection
 pandas
 st-gsheets-connection
+streamlit
+pandas
+supabase
