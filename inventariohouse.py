@@ -3,13 +3,12 @@ import sqlite3
 import pandas as pd
 
 # --- CONFIGURACIÓN DE LA PÁGINA ---
-st.set_page_config(page_title="Inventario Local", layout="wide")
+st.set_page_config(page_title="Inventario Ignacio-House", layout="wide")
 st.title("📦 INVENTARIO IGNACIO-HOUSE")
 
-# --- FUNCIONES DE BASE DE DATOS (SQLite) ---
+# --- FUNCIONES DE BASE DE DATOS ---
 def conectar_db():
-    conn = sqlite3.connect('inventario.db', check_same_thread=False)
-    return conn
+    return sqlite3.connect('inventario.db', check_same_thread=False)
 
 def crear_tabla():
     conn = conectar_db()
@@ -35,7 +34,30 @@ def leer_datos():
 def guardar_producto(m, n, p, c):
     conn = conectar_db()
     cursor = conn.cursor()
+    # Verificamos si ya existe el nombre en ese módulo
+    cursor.execute("SELECT id FROM productos WHERE nombre = ? AND modulo = ?", (n, m))
+    existe = cursor.fetchone()
+    
+    if existe:
+        conn.close()
+        return False # No se agrega si ya existe
+    
     cursor.execute("INSERT INTO productos (modulo, nombre, precio, cantidad) VALUES (?, ?, ?, ?)", (m, n, p, c))
+    conn.commit()
+    conn.close()
+    return True
+
+def actualizar_dato(id_prod, columna, nuevo_valor):
+    conn = conectar_db()
+    cursor = conn.cursor()
+    cursor.execute(f"UPDATE productos SET {columna} = ? WHERE id = ?", (nuevo_valor, id_prod))
+    conn.commit()
+    conn.close()
+
+def mover_a_comida(id_prod):
+    conn = conectar_db()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE productos SET modulo = 'Comida' WHERE id = ?", (id_prod,))
     conn.commit()
     conn.close()
 
@@ -46,7 +68,7 @@ def borrar_producto(id_prod):
     conn.commit()
     conn.close()
 
-# Inicializar la base de datos al abrir
+# Inicializar DB
 crear_tabla()
 
 # --- INTERFAZ LATERAL ---
@@ -56,37 +78,80 @@ nombre_input = st.sidebar.text_input("Nombre del producto")
 precio_input = st.sidebar.number_input("Precio ($)", min_value=0.0, step=0.1)
 cantidad_input = st.sidebar.number_input("Cantidad", min_value=1, step=1)
 
-if st.sidebar.button("Guardar en SQL"):
+if st.sidebar.button("Guardar en Inventario"):
     if nombre_input:
-        guardar_producto(modulo_sel, nombre_input.capitalize(), precio_input, cantidad_input)
-        st.sidebar.success(f"¡{nombre_input} guardado!")
-        st.rerun()
+        nombre_cap = nombre_input.strip().capitalize()
+        fue_guardado = guardar_producto(modulo_sel, nombre_cap, precio_input, cantidad_input)
+        
+        if fue_guardado:
+            st.sidebar.success(f"✅ LISTO: {nombre_cap} guardado.")
+            st.rerun()
+        else:
+            st.sidebar.warning(f"⚠️ El producto '{nombre_cap}' ya existe en {modulo_sel}. Modifícalo en la lista.")
     else:
         st.sidebar.error("Escribe un nombre")
 
 # --- CUERPO PRINCIPAL ---
-tab1, tab2, tab3 = st.tabs(["🍕 Comida", "🏠 Hogar", "🛒 Por Comprar"])
 df_total = leer_datos()
+tab1, tab2, tab3 = st.tabs(["🍕 Comida", "🏠 Hogar", "🛒 Por Comprar"])
 
 def mostrar_pestaña(nombre_modulo, pestaña):
     with pestaña:
-        if not df_total.empty:
-            df = df_total[df_total['modulo'] == nombre_modulo].copy()
-            if not df.empty:
-                df['Subtotal'] = df['precio'] * df['cantidad']
-                st.dataframe(df.drop(columns=['modulo']), use_container_width=True, hide_index=True)
-                
-                total = df['Subtotal'].sum()
-                st.metric("Total", f"${total:,.2f}")
-                
-                id_borrar = st.number_input(f"ID a borrar en {nombre_modulo}", min_value=0, key=f"id_{nombre_modulo}")
-                if st.button(f"Eliminar", key=f"btn_{nombre_modulo}"):
+        df = df_total[df_total['modulo'] == nombre_modulo].copy()
+        if not df.empty:
+            # 1. Edición de valores
+            st.subheader(f"Listado de {nombre_modulo}")
+            
+            # Usamos st.data_editor para permitir cambios rápidos
+            columnas_config = {
+                "id": None, # Ocultar ID
+                "modulo": None, # Ocultar Módulo
+                "nombre": st.column_config.TextColumn("Producto", disabled=True),
+                "precio": st.column_config.NumberColumn("Precio ($)", min_value=0, format="$%.2f"),
+                "cantidad": st.column_config.NumberColumn("Cantidad", min_value=0),
+            }
+            
+            edited_df = st.data_editor(
+                df, 
+                column_config=columnas_config, 
+                use_container_width=True, 
+                hide_index=True, 
+                key=f"editor_{nombre_modulo}"
+            )
+
+            # Botón para guardar cambios de la tabla si hubo ediciones
+            if st.button(f"Confirmar cambios en {nombre_modulo}", key=f"save_{nombre_modulo}"):
+                for index, row in edited_df.iterrows():
+                    actualizar_dato(row['id'], 'precio', row['precio'])
+                    actualizar_dato(row['id'], 'cantidad', row['cantidad'])
+                st.success("Cambios aplicados.")
+                st.rerun()
+
+            # 2. Acciones específicas por fila
+            st.divider()
+            col_del, col_move = st.columns(2)
+            
+            with col_del:
+                id_borrar = st.number_input(f"ID para eliminar", min_value=0, key=f"del_id_{nombre_modulo}")
+                if st.button(f"🗑️ Eliminar Producto", key=f"btn_del_{nombre_modulo}"):
                     borrar_producto(id_borrar)
                     st.rerun()
-            else:
-                st.info(f"No hay nada en {nombre_modulo}")
+
+            if nombre_modulo == "Por Comprar":
+                with col_move:
+                    id_mover = st.number_input(f"ID para pasar a Comida", min_value=0, key="move_id")
+                    if st.button(f"🚚 Mover a Inventario Comida", key="btn_move"):
+                        mover_a_comida(id_mover)
+                        st.success("Producto movido con éxito.")
+                        st.rerun()
+            
+            # 3. Métricas
+            st.divider()
+            df['Subtotal'] = df['precio'] * df['cantidad']
+            total = df['Subtotal'].sum()
+            st.metric("Inversión Total en el módulo", f"${total:,.2f}")
         else:
-            st.info("La base de datos está vacía.")
+            st.info(f"No hay nada en {nombre_modulo}")
 
 mostrar_pestaña("Comida", tab1)
 mostrar_pestaña("Hogar", tab2)
