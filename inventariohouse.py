@@ -13,32 +13,21 @@ URL_HOJA = "TU_URL_DE_GOOGLE_SHEET_AQUI"
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 def leer_datos():
-    # Leemos la hoja completa
-    df = conn.read(spreadsheet=URL_HOJA)
-    return df.dropna(how="all") # Limpia filas vacías
-
-# --- BARRA LATERAL PARA AÑADIR ---
-st.sidebar.header("Añadir Producto")
-modulo_sel = st.sidebar.selectbox("Elegir Módulo", ["Comida", "Hogar", "Por Comprar"])
-nombre_input = st.sidebar.text_input("Nombre del producto")
-precio_input = st.sidebar.number_input("Precio ($)", min_value=0.0, step=0.1)
-cantidad_input = st.sidebar.number_input("Cantidad", min_value=1, step=1)
-
-if st.sidebar.button("Guardar"):
-    if nombre_input:
-        df_actual = leer_datos()
+    try:
+        # Esto limpia la URL para que siempre termine en el formato correcto para descargar
+        base_url = URL_HOJA.split('/edit')[0]
+        csv_url = f"{base_url}/export?format=csv"
         
-        # Generar nuevo ID
-        nuevo_id = int(df_actual["id"].max() + 1) if not df_actual.empty else 1
+        # Leemos el CSV directamente de Google
+        df = pd.read_csv(csv_url)
         
-        # Crear nueva fila
-        nueva_fila = pd.DataFrame([{
-            "id": nuevo_id,
-            "modulo": modulo_sel,
-            "nombre": nombre_input.capitalize(),
-            "precio": precio_input,
-            "cantidad": cantidad_input
-        }])
+        # Aseguramos que los nombres de columnas estén en minúsculas y sin espacios
+        df.columns = [c.strip().lower() for c in df.columns]
+        
+        return df.dropna(how="all")
+    except Exception as e:
+        st.error(f"Error 404: No se encontró la hoja. Verifica la URL y que esté 'Publicada en la web'. Detalle: {e}")
+        return pd.DataFrame(columns=['id', 'modulo', 'nombre', 'precio', 'cantidad'])
         
         # Concatenar y actualizar nube
         df_final = pd.concat([df_actual, nueva_fila], ignore_index=True)
