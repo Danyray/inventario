@@ -69,7 +69,7 @@ def borrar_producto(id_prod):
 # Inicializar DB
 crear_tabla()
 
-# --- FORMULARIO DE AGREGAR (CENTRAL Y VISIBLE) ---
+# --- FORMULARIO DE AGREGAR ---
 with st.expander("➕ HACER CLIC AQUÍ PARA AGREGAR NUEVO PRODUCTO", expanded=False):
     col1, col2 = st.columns(2)
     with col1:
@@ -83,10 +83,9 @@ with st.expander("➕ HACER CLIC AQUÍ PARA AGREGAR NUEVO PRODUCTO", expanded=Fa
         if nombre_input:
             nombre_cap = nombre_input.strip().capitalize()
             if guardar_producto(modulo_sel, nombre_cap, precio_input, cantidad_input):
-                # --- NUEVA ALERTA DE ÉXITO ---
                 st.toast(f'¡{nombre_cap} añadido!', icon='✅')
                 st.success("✨ GUARDADO EXITOSO")
-                time.sleep(1) # Pequeña pausa para que se vea el mensaje
+                time.sleep(1)
                 st.rerun()
             else:
                 st.warning(f"⚠️ '{nombre_cap}' ya existe en {modulo_sel}.")
@@ -136,6 +135,7 @@ for i, tab in enumerate(tabs):
             st.divider()
             c1, c2 = st.columns(2)
             with c1:
+                st.write("### 🗑️ Eliminar")
                 id_del = st.number_input("ID para borrar", min_value=0, key=f"id_del_{nombre_mod}", step=1)
                 if st.button(f"🗑️ Eliminar ID {id_del}", key=f"btn_del_{nombre_mod}"):
                     borrar_producto(id_del)
@@ -144,12 +144,17 @@ for i, tab in enumerate(tabs):
             
             if nombre_mod == "Por Comprar":
                 with c2:
-                    id_mov = st.number_input("ID para mover a Comida", min_value=0, key="id_mov", step=1)
-                    if st.button(f"🚚 Mover ID {id_mov}", key="btn_mov"):
+                    st.write("### 🚚 Traspasar")
+                    id_mov = st.number_input("ID para mover a Comida", min_value=0, key="id_mov_pc", step=1)
+                    if st.button(f"🚚 Mover ID {id_mov}", key="btn_mov_pc"):
                         mover_a_comida(id_mov)
                         st.toast('Movido a Comida', icon='🚚')
                         st.rerun()
 
             st.divider()
+            # Cálculo de subtotal y métrica corregida en una sola línea
             df['Subtotal'] = df['precio'] * df['cantidad']
-            st.metric(f"Total {nombre_mod}", f"${df['Subtotal'].
+            suma_total = df['Subtotal'].sum()
+            st.metric(label=f"Total {nombre_mod}", value=f"${suma_total:,.2f}")
+        else:
+            st.info(f"No hay productos en {nombre_mod}.")
