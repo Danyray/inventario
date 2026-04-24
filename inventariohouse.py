@@ -5,7 +5,7 @@ from datetime import datetime
 from supabase import create_client, Client
 
 # --- CONFIGURACIÓN ---
-st.set_page_config(page_title="Inventario JYI Pro - Chef Edition", layout="wide")
+st.set_page_config(page_title="Inventario JYI Pro - Chef Supremo", layout="wide")
 
 # --- CONEXIÓN ---
 @st.cache_resource
@@ -14,33 +14,49 @@ def conectar_supabase():
 
 supabase = conectar_supabase()
 
-# --- LÓGICA DEL CHEF (PASO A PASO DETALLADO) ---
-def generar_menu_paso_a_paso(productos):
+# --- LÓGICA DEL CHEF (4 OPCIONES POR TURNO + DETALLE MÁXIMO) ---
+def generar_menu_supremo(productos):
     p_list = [str(p).lower() for p in productos]
     tiene = lambda x: any(x in item for item in p_list)
     menu = {"☀️ DESAYUNO": [], "🍴 ALMUERZO": [], "🌙 CENA": []}
 
     def agregar(bloque, titulo, receta, tipo="Sencilla"):
-        icono = "⚡" if tipo == "Sencilla" else "⭐"
+        icono = "⚡ (Sencilla)" if tipo == "Sencilla" else "⭐ (Gourmet)"
         menu[bloque].append({"titulo": f"{icono} {titulo}", "receta": receta})
 
-    # --- DESAYUNOS ---
-    if tiene("harina de maiz") or tiene("harina pan"):
-        agregar("☀️ DESAYUNO", "Arepas Asadas con Queso (Técnica Exacta)", 
-                "1. En un bol, vierte 1.5 tazas de agua tibia con 1/2 cucharadita de sal. 2. Agrega 1 taza de harina de maíz poco a poco, mezclando con los dedos para evitar grumos. 3. Amasa 3 min hasta que esté compacta. 4. Forma discos de 10cm de diámetro y 2cm de grosor. 5. Calienta un sartén o budare a fuego medio-alto por 2 min. 6. Cocina la arepa 7 min por lado hasta que la costra esté firme. 7. Abre por el medio y coloca 50g de queso rallado.")
-        
+    # --- ☀️ DESAYUNOS (2 Sencillos + 2 Gourmet) ---
+    if tiene("harina") or tiene("pan"):
+        # Sencillos
+        agregar("☀️ DESAYUNO", "Arepa Rellena Express", "1. Mezcla 1 taza de agua con sal. 2. Añade harina hasta que la masa no se pegue. 3. Haz un disco de 2cm y cocina 5 min por lado. 4. Abre y coloca queso rallado inmediatamente.")
+        agregar("☀️ DESAYUNO", "Sándwich Tostado de Queso", "1. Toma dos rebanadas de pan. 2. Coloca queso en medio. 3. Calienta un sartén con una gota de aceite. 4. Tuesta el sándwich 2 min por lado apretándolo con una espátula.")
+        # Gourmet
         if tiene("carne"):
-            agregar("☀️ DESAYUNO", "Arepa Pelúa Gourmet (Sazonada)", 
-                    "1. Corta 200g de carne en tiritas de 1cm. 2. Sazona con una pizca de comino y sal. 3. Calienta un sartén con aceite, añade la carne y cocina 5 min a fuego alto hasta que dore. 4. Prepara la arepa según el método anterior. 5. Rellena mezclando la carne caliente con queso rallado grueso para que el calor la funda.", "Gourmet")
+            agregar("☀️ DESAYUNO", "Arepa Pelúa con Carne Sellada", "1. Corta la carne en tiritas de 1cm y sazona con sal y comino. 2. Cocina a fuego máximo 4 min hasta que dore. 3. Prepara la arepa tradicional. 4. Rellena con la carne caliente y cubre con una montaña de queso rallado fino para que gratine.", "Gourmet")
+        if tiene("azucar"):
+            agregar("☀️ DESAYUNO", "Arepitas Dulces Tradicionales", "1. A la masa de harina de maíz, agrega 1 cucharada de azúcar y una pizca de harina de trigo. 2. Forma arepas delgadas (1cm). 3. Fríe en aceite muy caliente hasta que se inflen. 4. Sirve con queso salado al lado.", "Gourmet")
 
-    # --- ALMUERZOS ---
+    # --- 🍴 ALMUERZOS (2 Sencillos + 2 Gourmet) ---
+    if tiene("pasta") or tiene("arroz"):
+        base = "Pasta" if tiene("pasta") else "Arroz"
+        # Sencillos
+        agregar("🍴 ALMUERZO", f"{base} Hervida con Queso", f"1. Cocina el {base} en agua con sal (Pasta 9 min / Arroz 20 min). 2. Escurre. 3. Sirve caliente y agrega el queso rallado arriba para que se ablande.")
+        if tiene("huevo"):
+            agregar("🍴 ALMUERZO", f"{base} con Huevo frito", f"1. Prepara tu {base} normal. 2. Fríe un huevo dejando la yema blanda. 3. Sirve el huevo sobre el carbohidrato para que la yema sirva de salsa.")
+        # Gourmet
+        if tiene("carne"):
+            agregar("🍴 ALMUERZO", "Salteado Criollo al Comino", f"1. Corta la carne en cubos. 2. Sazona con sal y bastante comino. 3. Sella en sartén caliente 5 min. 4. Mezcla con el {base} ya cocido y añade un chorrito del agua donde se cocinó el carbohidrato para dar cremosidad.", "Gourmet")
+            agregar("🍴 ALMUERZO", f"Bistec Encebollado con {base}", f"1. Cocina el bistec entero sazonado con sal. 2. Si tienes cebolla, sofríela arriba. 3. Sirve con una porción de {base} moldeada en una taza para que se vea profesional.", "Gourmet")
+
+    # --- 🌙 CENAS (2 Sencillos + 2 Gourmet) ---
+    # Sencillos
+    agregar("🌙 CENA", "Cena Ligera de Queso", "1. Corta el queso en cubos pequeños. 2. Si tienes pan o galletas, acompáñalo. 3. Una opción rápida sin cocinar.")
     if tiene("pasta"):
-        agregar("🍴 ALMUERZO", "Pasta al Dente con Queso", 
-                "1. Hierve 2 litros de agua con 1 cucharada de sal. 2. Añade la pasta y cocina exactos 9 minutos. 3. Antes de colar, guarda 3 cucharadas del agua de la pasta. 4. Cuela y regresa a la olla. 5. Mezcla con el agua reservada, una cucharada de mantequilla y queso rallado fino hasta que emulsione.")
-        
-        if tiene("carne") and tiene("comino"):
-            agregar("🍴 ALMUERZO", "Lomito Salteado al Comino", 
-                    "1. Corta la carne en cubos medianos. 2. Espolvorea comino y sal generosamente. 3. En un sartén humeante, sella la carne 3 min por lado sin moverla. 4. Sirve la carne sobre la pasta cocida para que los jugos se mezclen con el queso.", "Gourmet")
+        agregar("🌙 CENA", "Pasta al Burro (Mantequilla)", "1. Cocina media porción de pasta. 2. Escurre bien. 3. Agrega mantequilla y sal. Mezcla hasta que brille.")
+    # Gourmet
+    if tiene("pan"):
+        agregar("🌙 CENA", "Tostadas Bistro de Queso y Comino", "1. Tuesta el pan con mantequilla en el sartén. 2. Derrite queso aparte y agrégale una pizca de comino. 3. Vierte el queso fundido sobre el pan tostado.", "Gourmet")
+    if tiene("carne"):
+        agregar("🌙 CENA", "Wrap de Carne y Queso", "1. Usa una arepa muy delgada o pan. 2. Rellena con tiritas de carne salteadas y queso. 3. Envuelve y calienta 1 min más en el sartén.", "Gourmet")
 
     return menu
 
@@ -55,47 +71,47 @@ if not st.session_state.auth:
             st.rerun()
     st.stop()
 
-# --- INTERFAZ ---
+# --- INTERFAZ PRINCIPAL ---
 st.title(f"📦 INVENTARIO JYI - {st.session_state.user}")
 
-# 1. REGISTRO AL INICIO
+# 1. REGISTRO AL INICIO (LO PRIMERO QUE SE VE)
 with st.expander("➕ REGISTRAR NUEVO PRODUCTO", expanded=True):
     f1, f2 = st.columns(2)
     m_new = f1.selectbox("Lista de Destino", ["Comida", "Hogar", "Por Comprar"])
     n_new = f1.text_input("Nombre del artículo")
-    p_new = f2.number_input("Precio por unidad ($)", min_value=0.0, step=0.01)
-    c_new = f2.number_input("Cantidad inicial", min_value=1)
+    p_new = f2.number_input("Precio por unidad ($)", min_value=0.0, step=0.01, format="%.2f")
+    c_new = f2.number_input("Cantidad inicial", min_value=1, step=1)
     if st.button("🚀 GUARDAR REGISTRO"):
         if n_new:
             supabase.table("productos").insert({"modulo": m_new, "nombre": n_new.capitalize(), "precio": float(p_new), "cantidad": int(c_new), "created_at": datetime.now().isoformat()}).execute()
-            st.success("✅ Producto agregado."); time.sleep(1); st.rerun()
+            st.success("✅ Producto guardado"); time.sleep(1); st.rerun()
 
 st.sidebar.title("💰 Cambio del Día")
 tasa_bcv = st.sidebar.number_input("Tasa BCV (Bs/$)", min_value=1.0, value=36.5, format="%.2f")
 
-# --- CARGA Y PESTAÑAS ---
+# CARGA DE DATOS
 res = supabase.table("productos").select("*").order("id").execute()
 df_all = pd.DataFrame(res.data if res.data else [])
 
 t_comida, t_hogar, t_compras = st.tabs(["🍕 COMIDA", "🏠 HOGAR", "🛒 POR COMPRAR"])
 
-# --- PESTAÑA COMIDA (INCLUYE CHEF) ---
+# --- PESTAÑA COMIDA (GESTIÓN + CHEF) ---
 with t_comida:
     df_c = df_all[df_all['modulo'] == 'Comida'].copy() if not df_all.empty else pd.DataFrame()
     if not df_c.empty:
         st.dataframe(df_c[["id", "nombre", "precio", "cantidad"]], use_container_width=True, hide_index=True)
-        st.divider()
+        
+        st.write("---")
         st.subheader("⚙️ Gestión de Alimentos")
-        p_sel = st.selectbox("Producto a gestionar:", df_c['nombre'].tolist())
+        p_sel = st.selectbox("Elegir producto para mover/eliminar:", df_c['nombre'].tolist())
         item = df_c[df_c['nombre'] == p_sel].iloc[0]
         
         c1, c2 = st.columns(2)
         if c1.button(f"🛒 Enviar '{p_sel}' a Compras"):
-            st.session_state.c_move = True
+            st.session_state.confirm_move = True
         
-        if st.session_state.get('c_move'):
-            if st.button(f"⚠️ CONFIRMAR: ¿Mover {p_sel}?"):
-                # Anti-duplicados
+        if st.session_state.get('confirm_move'):
+            if st.button(f"✅ CONFIRMAR ENVÍO DE {p_sel}"):
                 existe = supabase.table("productos").select("*").eq("modulo", "Por Comprar").eq("nombre", item['nombre']).execute()
                 if existe.data:
                     nueva_cant = int(existe.data[0]['cantidad']) + int(item['cantidad'])
@@ -103,46 +119,56 @@ with t_comida:
                     supabase.table("productos").delete().eq("id", item['id']).execute()
                 else:
                     supabase.table("productos").update({"modulo": "Por Comprar"}).eq("id", item['id']).execute()
-                st.session_state.c_move = False; st.rerun()
+                st.session_state.confirm_move = False; st.rerun()
 
         if c2.button(f"🗑️ Eliminar '{p_sel}'"):
-            st.session_state.c_del = True
+            st.session_state.confirm_del = True
         
-        if st.session_state.get('c_del'):
-            if st.button(f"🔥 SÍ, ELIMINAR {p_sel} PERMANENTEMENTE"):
+        if st.session_state.get('confirm_del'):
+            if st.button(f"🔥 CONFIRMAR ELIMINACIÓN DE {p_sel}"):
                 supabase.table("productos").delete().eq("id", item['id']).execute()
-                st.session_state.c_del = False; st.rerun()
+                st.session_state.confirm_del = False; st.rerun()
 
-        # EL CHEF SÓLO AQUÍ
+        # --- EL CHEF (SOLO VISIBLE AQUÍ) ---
         st.divider()
-        st.subheader("👨‍🍳 Ideas del Chef Gourmet")
-        if st.button("🪄 Generar Recetas Paso a Paso"):
+        st.subheader("👨‍🍳 Ideas del Chef Gourmet (4 Opciones por Turno)")
+        if st.button("🪄 Generar Menú Sencillo + Gourmet"):
             stock = df_c[df_c['cantidad'] > 0]['nombre'].tolist()
-            menu = generar_menu_paso_a_paso(stock)
-            for m, recetas in menu.items():
-                if recetas:
-                    st.write(f"### {m}")
-                    for r in recetas:
-                        with st.expander(r['titulo']): st.info(r['receta'])
-    else: st.info("Sección de comida vacía.")
+            menu = generar_menu_supremo(stock)
+            for momento, platos in menu.items():
+                if platos:
+                    st.write(f"### {momento}")
+                    cols = st.columns(2)
+                    for idx, p in enumerate(platos):
+                        with cols[idx % 2]:
+                            with st.expander(p['titulo']):
+                                st.info(p['receta'])
+    else:
+        st.info("No hay comida registrada.")
 
-# --- LÓGICA DE TABLAS FINANCIERAS (HOGAR Y COMPRAS) ---
-def render_tabla_pro(df_sec, mod_name):
+# --- LÓGICA FINANCIERA CORREGIDA (HOGAR Y COMPRAS) ---
+def render_tabla_financiera(df_sec, mod):
     if not df_sec.empty:
+        # Cálculo exacto: (Precio * Cantidad) * Tasa
         df_sec['Total USD'] = df_sec['precio'] * df_sec['cantidad']
         df_sec['Total Bs.'] = df_sec['Total USD'] * tasa_bcv
+        
         st.data_editor(df_sec[["id", "nombre", "precio", "cantidad", "Total USD", "Total Bs."]], 
-                       use_container_width=True, hide_index=True, disabled=["Total USD", "Total Bs."], key=f"ed_{mod_name}")
-        t_usd, t_bs = df_sec['Total USD'].sum(), df_sec['Total Bs.'].sum()
+                       use_container_width=True, hide_index=True, disabled=["Total USD", "Total Bs."], key=f"ed_{mod}")
+        
+        sum_usd = df_sec['Total USD'].sum()
+        sum_bs = df_sec['Total Bs.'].sum()
+        
         c1, c2 = st.columns(2)
-        c1.metric(f"Monto Total {mod_name}", f"{t_usd:.2f} $")
-        c2.metric(f"Monto Total {mod_name}", f"{t_bs:.2f} Bs")
-    else: st.info(f"Sin registros en {mod_name}.")
+        c1.metric(f"Total {mod} ($)", f"{sum_usd:.2f} $")
+        c2.metric(f"Total {mod} (Bs)", f"{sum_bs:.2f} Bs")
+    else:
+        st.info(f"Sección {mod} vacía.")
 
 with t_hogar:
     df_h = df_all[df_all['modulo'] == 'Hogar'].copy() if not df_all.empty else pd.DataFrame()
-    render_tabla_pro(df_h, "Hogar")
+    render_tabla_financiera(df_h, "Hogar")
 
 with t_compras:
     df_p = df_all[df_all['modulo'] == 'Por Comprar'].copy() if not df_all.empty else pd.DataFrame()
-    render_tabla_pro(df_p, "Por Comprar")
+    render_tabla_financiera(df_p, "Por Comprar")
