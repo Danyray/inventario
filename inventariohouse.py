@@ -7,10 +7,10 @@ from supabase import create_client, Client
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="Inventario MI❤️AMOR JYI", layout="wide")
 
-# --- LÓGICA DEL CHEF PROFESIONAL (18 SUGERENCIAS REALES) ---
+# --- LÓGICA DEL CHEF PROFESIONAL (SIN REPETICIONES) ---
 def generar_menu_completo(productos):
-    # Clasificación por comportamiento culinario
-    proteinas = [p.capitalize() for p in productos if any(x in p.capitalize() for x in ["Carne", "Pollo", "Huevo", "Atun", "Cerdo", "Queso", "Mortadela", "Salchicha"])]
+    # Clasificación precisa
+    proteinas = sorted(list(set([p.capitalize() for p in productos if any(x in p.capitalize() for x in ["Carne", "Pollo", "Huevo", "Atun", "Cerdo", "Queso", "Mortadela", "Salchicha"])])))
     harina_pan = [p.capitalize() for p in productos if "Harina pan" in p.capitalize()]
     harina_trigo = [p.capitalize() for p in productos if "Trigo" in p.capitalize()]
     carbo_cocidos = [p.capitalize() for p in productos if any(x in p.capitalize() for x in ["Arroz", "Pasta", "Papa", "Yuca", "Platano"])]
@@ -18,43 +18,43 @@ def generar_menu_completo(productos):
 
     menu = {"☀️ DESAYUNO": [], "🍴 ALMUERZO": [], "🌙 CENA": []}
     
-    # Función interna para rotar ingredientes sin repetir la misma receta exacta
-    def armar_opciones(lista_base, lista_prot, momento, max_opciones=6):
-        opciones = []
-        if not lista_base or not lista_prot:
-            return opciones
-        
-        for i in range(max_opciones):
-            base = lista_base[i % len(lista_base)]
-            prot = lista_prot[i % len(lista_prot)]
+    # --- DESAYUNOS (SIN DUPLICADOS) ---
+    bases_desayuno = harina_pan + harina_trigo + pan
+    for b in bases_desayuno:
+        for p in proteinas:
+            if "Trigo" in b:
+                t, r, img = f"Panquecas con {p}", f"1. Mezcla {b} con agua y sal.\n2. Cocina círculos en sartén.\n3. Sirve con {p}.", ""
+            elif "Harina pan" in b:
+                t, r, img = f"Arepa con {p}", f"1. Amasa {b} con agua.\n2. Cocina en budare.\n3. Rellena con {p}.", ""
+            else:
+                t, r, img = f"Sándwich de {p}", f"1. Tuesta el {b}.\n2. Rellena con {p} y un toque de mantequilla.", ""
             
-            if momento == "DESAYUNO":
-                if "Trigo" in base:
-                    titulo = f"Panquecas con {prot}"
-                    receta = f"1. Mezcla {base} con agua/leche y sal.\n2. Cocina en sartén.\n3. Acompaña con {prot}."
-                elif "Harina pan" in base:
-                    titulo = f"Arepa de Maíz con {prot}"
-                    receta = f"1. Haz la masa con {base}.\n2. Cocina en budare.\n3. Rellena con {prot} (rallado o frito)."
-                else:
-                    titulo = f"Sándwich de {prot}"
-                    receta = f"1. Tuesta el {base}.\n2. Rellena con {prot} y mantequilla."
-            
-            elif momento == "ALMUERZO":
-                titulo = f"{base} con {prot}"
-                receta = f"1. Hierve el/la {base} con sal.\n2. Prepara el {prot} salteado o a la plancha.\n3. Sirve caliente."
-            
-            elif momento == "CENA":
-                titulo = f"Cena ligera de {prot} y {base}"
-                receta = f"1. Porción pequeña de {base}.\n2. Acompaña con {prot} preparado de forma sencilla."
-            
-            opciones.append({"titulo": titulo, "receta": receta})
-        return opciones
+            if len(menu["☀️ DESAYUNO"]) < 6:
+                menu["☀️ DESAYUNO"].append({"titulo": t, "receta": r, "img": img})
 
-    # Llenar las 6 opciones por categoría
-    menu["☀️ DESAYUNO"] = armar_opciones(harina_pan + harina_trigo + pan, proteinas, "DESAYUNO")
-    menu["🍴 ALMUERZO"] = armar_opciones(carbo_cocidos, [pr for pr in proteinas if "Queso" not in pr] or proteinas, "ALMUERZO")
-    menu["🌙 CENA"] = armar_opciones(pan + carbo_cocidos, proteinas, "CENA")
+    # --- ALMUERZOS (LÓGICA REAL) ---
+    # Filtramos proteínas pesadas para el almuerzo
+    prot_fuerte = [pr for pr in proteinas if "Queso" not in pr] or proteinas
+    for c in carbo_cocidos:
+        for p in prot_fuerte:
+            if len(menu["🍴 ALMUERZO"]) < 6:
+                menu["🍴 ALMUERZO"].append({
+                    "titulo": f"{c} con {p}",
+                    "receta": f"1. Hierve el/la {c} con sal.\n2. Prepara el {p} salteado o a la plancha.\n3. Sirve caliente.",
+                    "img": ""
+                })
 
+    # --- CENAS (LIGERO Y DIFERENTE) ---
+    for p in reversed(proteinas): # Empezamos por el final para variar
+        base_cena = pan if pan else (carbo_cocidos if carbo_cocidos else ["una porción ligera"])
+        for b in base_cena:
+            if len(menu["🌙 CENA"]) < 6:
+                menu["🌙 CENA"].append({
+                    "titulo": f"Cena: {p} con {b}",
+                    "receta": f"1. Prepara {b} en porción pequeña.\n2. Acompaña con {p} preparado de forma sencilla.",
+                    "img": ""
+                })
+                
     return menu
 
 # --- CONEXIÓN SUPABASE ---
@@ -103,22 +103,21 @@ for i, tab in enumerate(tabs):
             if c1.button(f"🔄 Actualizar {mod}", key=f"up_{mod}"):
                 for _, r in edit_df.iterrows(): 
                     supabase.table("productos").update({"precio": r['precio'], "cantidad": r['cantidad']}).eq("id", r['id']).execute()
-                st.success("Actualizado"); st.rerun()
+                st.rerun()
             id_b = c2.number_input("ID a borrar", min_value=0, key=f"idb_{mod}", step=1)
             if c2.button(f"🗑️ Eliminar", key=f"del_{mod}"):
                 supabase.table("productos").delete().eq("id", id_b).execute(); st.rerun()
 
-# --- CHEF IA: 6 OPCIONES POR CATEGORÍA ---
+# --- CHEF IA ---
 st.divider()
-st.subheader("👨‍🍳 Menú del Día (6 opciones por comida)")
+st.subheader("👨‍🍳 Menú del Día (Opciones Únicas)")
 if not df_all.empty:
     comida_list = df_all[(df_all['modulo'] == 'Comida') & (df_all['cantidad'] > 0)]['nombre'].tolist()
-    if st.button("🪄 Generar Menú Completo", use_container_width=True):
+    if st.button("🪄 Generar Menú Sin Repeticiones", use_container_width=True):
         menu = generar_menu_completo(comida_list)
         for momento, platos in menu.items():
             if platos:
                 st.markdown(f"## {momento}")
-                # Grid de 3 columnas para mostrar las 6 opciones de forma compacta
                 for i in range(0, len(platos), 3):
                     cols = st.columns(3)
                     for j in range(3):
@@ -126,4 +125,5 @@ if not df_all.empty:
                             p = platos[i+j]
                             with cols[j]:
                                 with st.expander(f"🍴 {p['titulo']}"):
+                                    st.write(p['img'])
                                     st.info(p['receta'])
