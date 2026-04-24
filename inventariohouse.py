@@ -10,11 +10,12 @@ st.set_page_config(page_title="Inventario MI❤️AMOR JYI", layout="wide")
 
 # --- CONFIGURACIÓN DE GEMINI IA ---
 if "GEMINI_API_KEY" in st.secrets:
-    # Forzamos el transporte a 'rest' para evitar conflictos de gRPC en la nube
-    genai.configure(api_key=st.secrets["GEMINI_API_KEY"], transport='rest')
+    # Forzamos la configuración con la API v1 (la más estable)
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     
-    # Usamos el nombre base del modelo que tiene mayor compatibilidad
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    # Intentamos cargar el modelo de forma explícita
+    # El nombre 'models/gemini-1.5-flash' es la ruta completa requerida por la API v1
+    model = genai.GenerativeModel('models/gemini-1.5-flash')
 else:
     st.error("Falta la clave GEMINI_API_KEY en los secretos de Streamlit.")
 
@@ -101,7 +102,7 @@ if login():
 
     # --- VISUALIZACIÓN POR PESTAÑAS ---
     response = supabase.table("productos").select("*").order("id").execute()
-    df_all = pd.DataFrame(response.data)
+    df_all = pd.DataFrame(response.data if response.data else [])
 
     nombres_tabs = ["Comida", "Hogar", "Por Comprar"]
     tabs = st.tabs(["🍕 COMIDA", "🏠 HOGAR", "🛒 POR COMPRAR"])
@@ -109,10 +110,7 @@ if login():
     for i, tab in enumerate(tabs):
         m_name = nombres_tabs[i]
         with tab:
-            if not df_all.empty:
-                df = df_all[df_all['modulo'] == m_name].copy()
-            else:
-                df = pd.DataFrame()
+            df = df_all[df_all['modulo'] == m_name].copy() if not df_all.empty else pd.DataFrame()
 
             if not df.empty:
                 df['fecha_f'] = pd.to_datetime(df['created_at']).dt.strftime('%d/%m %H:%M')
@@ -160,15 +158,15 @@ if login():
             lista_ingredientes = df_comida['nombre'].tolist()
             if lista_ingredientes:
                 if st.button("🪄 Generar Recetas", use_container_width=True):
-                    with st.spinner("Cocinando ideas..."):
+                    with st.spinner("Consultando al Chef..."):
                         try:
-                            # Prompt directo para evitar errores de codificación
-                            query = f"Recetas con: {', '.join(lista_ingredientes)}. Dame 3 ideas rápidas."
-                            response = model.generate_content(query)
+                            # Llamada limpia
+                            prompt = f"Tengo {', '.join(lista_ingredientes)}. Dame 3 recetas rápidas."
+                            response = model.generate_content(prompt)
                             st.markdown(response.text)
                         except Exception as e:
                             st.error(f"Error de API: {e}")
             else:
-                st.warning("Agrega ingredientes a 'Comida' primero.")
+                st.warning("No hay ingredientes suficientes.")
         else:
             st.info("Inventario vacío.")
