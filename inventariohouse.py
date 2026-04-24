@@ -14,7 +14,7 @@ def conectar_supabase():
 
 supabase = conectar_supabase()
 
-# --- MONITORES DE TASAS (REFERENCIA OFICIAL) ---
+# --- MONITORES DE TASAS ---
 TASAS = {
     "🏦 BCV": 483.87,
     "⚖️ Paralelo": 542.15,
@@ -23,30 +23,27 @@ TASAS = {
 }
 TASA_BCV_FIJA = TASAS["🏦 BCV"] 
 
-# --- LÓGICA DEL CHEF SUPERIOR (12 OPCIONES TOTALES) ---
+# --- LÓGICA DEL CHEF ---
 def generar_menu_inteligente(productos):
     menu = {"☀️ DESAYUNO": [], "🍴 ALMUERZO": [], "🌙 CENA": []}
     def agregar(bloque, titulo, receta, tipo="Sencilla"):
         icono = "⚡ (Sencilla)" if tipo == "Sencilla" else "⭐ (Gourmet)"
         menu[bloque].append({"titulo": f"{icono} {titulo}", "receta": receta})
 
-    # --- DESAYUNOS ---
-    agregar("☀️ DESAYUNO", "Arepa de Maíz en Doble Cocción", "1. Hidratar harina con sal. 2. Amasar 3 min. 3. Sellar en budare 4 min por lado. 4. Terminar 5 min tapado para inflar.")
-    agregar("☀️ DESAYUNO", "Sándwich Tostado con Presión", "1. Mantequilla en caras externas. 2. Queso al centro. 3. Tostar aplicando presión física para fundir.")
-    agregar("☀️ DESAYUNO", "Arepa Pelúa con Desglasado", "1. Sellar carne a fuego máximo. 2. Desglasar con 2 cdas de agua para jugos. 3. Rellenar con queso amarillo.", "Gourmet")
-    agregar("☀️ DESAYUNO", "Omelette de Técnica Francesa", "1. Batir 2 huevos hasta espumar. 2. Fuego bajo con mantequilla. 3. Remover centro para cremosidad. 4. Doblar.", "Gourmet")
-
-    # --- ALMUERZOS ---
-    agregar("🍴 ALMUERZO", "Pasta con Emulsión de Almidón", "1. Cocinar al dente. 2. Reservar agua de cocción. 3. Batir pasta, mantequilla y agua para ligar salsa.")
-    agregar("🍴 ALMUERZO", "Arroz Blanco Graneado Técnico", "1. Nacarar arroz con ajo 2 min. 2. Añadir agua hirviendo (2:1). 3. Cocinar tapado 18 min sin abrir.")
-    agregar("🍴 ALMUERZO", "Bistec Sellado 'Maitre d'Hotel'", "1. Secar carne. 2. Sellar 3 min por lado en hierro. 3. Reposar 2 min para redistribuir jugos.", "Gourmet")
-    agregar("🍴 ALMUERZO", "Salteado de Carne al Comino", "1. Cubos de carne con comino intenso. 2. Sellar fuego alto. 3. Crear salsa oscura con fondo de sartén.", "Gourmet")
-
-    # --- CENAS ---
-    agregar("🌙 CENA", "Tostada de Maíz 'Crocante'", "1. Arepa abierta por mitad. 2. Tostar caras internas hasta galleta. 3. Capa fina de queso.")
-    agregar("🌙 CENA", "Pasta 'Cacio e Pepe' Sencilla", "1. Pasta corta. 2. Pimienta negra y queso seco. 3. Agua de pasta para unir.")
-    agregar("🌙 CENA", "Panini de Proteína Fundida", "1. Pan relleno, envuelto en aluminio. 2. Calentar con peso encima. 3. Vapor ablanda, exterior cruje.", "Gourmet")
-    agregar("🌙 CENA", "Degustación de Queso y Especias", "1. Dados de queso salteados con comino y azúcar hasta dorar bordes. 2. Servir con pan tostado.", "Gourmet")
+    agregar("☀️ DESAYUNO", "Arepa en Doble Cocción", "1. Hidratar harina. 2. Amasar. 3. Sellar en budare. 4. Terminar tapado.")
+    agregar("☀️ DESAYUNO", "Sándwich con Presión", "1. Mantequilla externa. 2. Queso al centro. 3. Tostar con peso encima.")
+    agregar("☀️ DESAYUNO", "Arepa Pelúa Gourmet", "1. Sellar carne. 2. Desglasar jugos. 3. Rellenar con queso amarillo.", "Gourmet")
+    agregar("☀️ DESAYUNO", "Omelette Cremoso", "1. Batir huevos espumosos. 2. Fuego bajo. 3. Remover centro.", "Gourmet")
+    
+    agregar("🍴 ALMUERZO", "Pasta con Emulsión", "1. Cocinar al dente. 2. Usar agua de pasta y mantequilla para ligar salsa.")
+    agregar("🍴 ALMUERZO", "Arroz Graneado", "1. Nacarar con ajo. 2. Agua hirviendo 2:1. 3. No abrir en 18 min.")
+    agregar("🍴 ALMUERZO", "Bistec Sellado", "1. Secar carne. 2. Hierro muy caliente 3 min/lado. 3. Reposo obligatorio.", "Gourmet")
+    agregar("🍴 ALMUERZO", "Carne al Comino", "1. Salteado rápido. 2. Comino intenso. 3. Reducción de fondo.", "Gourmet")
+    
+    agregar("🌙 CENA", "Tostada de Maíz", "1. Arepa abierta. 2. Tostar caras internas hasta que suene crocante.")
+    agregar("🌙 CENA", "Cacio e Pepe Sencillo", "1. Pasta corta. 2. Pimienta negra. 3. Queso seco y agua de pasta.")
+    agregar("🌙 CENA", "Panini de Proteína", "1. Relleno compacto. 2. Papel aluminio y peso. 3. Tostado uniforme.", "Gourmet")
+    agregar("🌙 CENA", "Queso Salteado", "1. Dados de queso con especias. 2. Dorado en sartén. 3. Pan de acompañamiento.", "Gourmet")
     return menu
 
 # --- LOGIN ---
@@ -60,35 +57,55 @@ if not st.session_state.auth:
             st.rerun()
     st.stop()
 
-# --- SIDEBAR: MONITORES Y CONVERSOR DESPLEGABLE ---
-st.sidebar.title("💰 Monitor de Divisas")
-st.sidebar.info(f"🏦 BCV: **{TASAS['🏦 BCV']}**")
-st.sidebar.warning(f"⚖️ Paralelo: **{TASAS['⚖️ Paralelo']}**")
-st.sidebar.success(f"💎 USDT: **{TASAS['💎 USDT']}**")
-st.sidebar.error(f"🇪🇺 Euro: **{TASAS['🇪🇺 Euro']}**")
+# --- SIDEBAR: MONITOR Y CONVERSOR LLAMATIVO ---
+st.sidebar.markdown("## 📊 Monitor de Divisas")
+st.sidebar.info(f"🏦 **BCV:** {TASAS['🏦 BCV']}")
+st.sidebar.warning(f"⚖️ **Paralelo:** {TASAS['⚖️ Paralelo']}")
+st.sidebar.success(f"💎 **USDT:** {TASAS['💎 USDT']}")
+st.sidebar.error(f"🇪🇺 **Euro:** {TASAS['🇪🇺 Euro']}")
 
 st.sidebar.divider()
 
-# MEJORA: CONVERSOR EN DESPLEGABLE CON SELECCIÓN DE TASA
-with st.sidebar.expander("🧮 CONVERSOR INTELIGENTE", expanded=True):
-    tasa_seleccionada = st.selectbox("Selecciona la tasa de referencia:", list(TASAS.keys()), index=0)
-    valor_tasa = TASAS[tasa_seleccionada]
+# --- NUEVO CONVERSOR LLAMATIVO ---
+with st.sidebar.container():
+    st.markdown("### 🔄 CONVERSOR DE MONEDA")
     
-    modo = st.radio("Dirección:", ["$ a Bolívares", "Bolívares a $"])
+    # Selector de Tasa con destaque
+    tasa_sel = st.selectbox("📌 Tasa de referencia:", list(TASAS.keys()), index=0)
+    v_tasa = TASAS[tasa_sel]
     
-    if modo == "$ a Bolívares":
-        m_dol = st.number_input("Monto en Dólares ($)", min_value=0.0, step=1.0, format="%.2f")
+    # Switch visual para el modo
+    modo = st.radio("Acción a realizar:", ["💵 Cambiar a Bolívares", "🇻🇪 Cambiar a Dólares"], horizontal=False)
+    
+    st.markdown("---")
+    
+    if "💵" in modo:
+        m_dol = st.number_input("Introduzca Dólares ($)", min_value=0.0, step=1.0, format="%.2f")
         if m_dol > 0:
-            st.success(f"Son: **{(m_dol * valor_tasa):,.2f} Bs**")
+            res = m_dol * v_tasa
+            st.markdown(f"""
+            <div style="background-color:#1e3d33; padding:15px; border-radius:10px; border-left: 5px solid #2ecc71;">
+                <p style="margin:0; font-size:14px; color:#aecbbd;">Monto calculado:</p>
+                <h2 style="margin:0; color:#2ecc71;">{res:,.2f} Bs</h2>
+            </div>
+            """, unsafe_allow_html=True)
     else:
-        m_bs = st.number_input("Monto en Bolívares (Bs)", min_value=0.0, step=10.0, format="%.2f")
+        m_bs = st.number_input("Introduzca Bolívares (Bs)", min_value=0.0, step=10.0, format="%.2f")
         if m_bs > 0:
-            st.success(f"Son: **{(m_bs / valor_tasa):,.2f} $**")
+            res = m_bs / v_tasa
+            st.markdown(f"""
+            <div style="background-color:#3d1e1e; padding:15px; border-radius:10px; border-left: 5px solid #e74c3c;">
+                <p style="margin:0; font-size:14px; color:#cbb9b9;">Monto calculado:</p>
+                <h2 style="margin:0; color:#e74c3c;">{res:,.2f} $</h2>
+            </div>
+            """, unsafe_allow_html=True)
+
+st.sidebar.divider()
 
 # --- INTERFAZ PRINCIPAL ---
 st.title(f"📦 INVENTARIO JYI - {st.session_state.user}")
 
-# 1. REGISTRO AL INICIO (ANTI-DUPLICADOS)
+# 1. REGISTRO AL INICIO
 with st.expander("➕ REGISTRAR NUEVO PRODUCTO", expanded=True):
     f1, f2 = st.columns(2)
     m_new = f1.selectbox("Destino", ["Comida", "Hogar", "Por Comprar"])
@@ -114,7 +131,6 @@ df_all = pd.DataFrame(res.data if res.data else [])
 
 t_comida, t_hogar, t_compras = st.tabs(["🍕 COMIDA", "🏠 HOGAR", "🛒 POR COMPRAR"])
 
-# --- TABLAS RE-ACTIVAS ---
 def render_tabla_gestion(df_sec, mod):
     if not df_sec.empty:
         df_sec['Subtotal $'] = df_sec['precio'] * df_sec['cantidad']
@@ -139,17 +155,14 @@ def render_tabla_gestion(df_sec, mod):
                 st.rerun()
     else: st.info(f"{mod} vacío.")
 
-# --- PESTAÑA COMIDA (GESTIÓN + CHEF) ---
 with t_comida:
     df_c = df_all[df_all['modulo'] == 'Comida'].copy() if not df_all.empty else pd.DataFrame()
     if not df_c.empty:
         render_tabla_gestion(df_c, "Comida")
-        
         st.divider()
         st.subheader("⚙️ Operaciones")
         p_sel = st.selectbox("Seleccionar producto:", df_c['nombre'].tolist())
         item = df_c[df_c['nombre'] == p_sel].iloc[0]
-        
         c1, c2 = st.columns(2)
         if c1.button(f"🛒 Enviar '{p_sel}' a Compras"): st.session_state.m_move = True
         if st.session_state.get('m_move'):
@@ -162,17 +175,15 @@ with t_comida:
                     supabase.table("productos").update({"modulo": "Por Comprar"}).eq("id", item['id']).execute()
                 supabase.table("productos").delete().eq("id", item['id']).execute()
                 st.session_state.m_move = False; st.rerun()
-
         if c2.button(f"🗑️ Eliminar '{p_sel}'"): st.session_state.m_del = True
         if st.session_state.get('m_del'):
             st.error(f"¿Borrar '{p_sel}'?")
             if st.button("🔥 SÍ, ELIMINAR"):
                 supabase.table("productos").delete().eq("id", int(item['id'])).execute()
                 st.session_state.m_del = False; st.rerun()
-
         st.divider()
-        st.subheader("👨‍🍳 El Chef: Menú de 12 Opciones")
-        if st.button("🪄 Generar Todas las Opciones"):
+        st.subheader("👨‍🍳 El Chef")
+        if st.button("🪄 Generar Menú"):
             menu = generar_menu_inteligente(df_c[df_c['cantidad'] > 0]['nombre'].tolist())
             for momento, platos in menu.items():
                 with st.expander(momento, expanded=False):
