@@ -8,6 +8,7 @@ from supabase import create_client, Client
 st.set_page_config(page_title="Inventario JYI - Versión Final Blindada v3", layout="wide")
 
 # --- ESTILO PARA EL BOTÓN DE APERTURA LLAMATIVO ---
+# Esto reemplaza las flechitas por un botón intuitivo que cualquiera pueda entender
 st.markdown("""
     <style>
         [data-testid="stSidebarCollapseIcon"] {
@@ -43,7 +44,8 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- CONEXIÓN ---
-@st.cache_resourcedef conectar_supabase():
+@st.cache_resource
+def conectar_supabase():
     return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 supabase = conectar_supabase()
@@ -109,12 +111,12 @@ with st.sidebar.container():
     st.markdown("---")
     
     if "💵" in modo:
-        m_dol = st.number_input("Monto en $", min_value=0.0, step=1.0, format="%.2f")
+        m_dol = st.number_input("Introduzca Dólares ($)", min_value=0.0, step=1.0, format="%.2f")
         if m_dol > 0:
             res_val = m_dol * v_tasa
             st.success(f"Son: **{res_val:,.2f} Bs**")
     else:
-        m_bs = st.number_input("Monto en Bs", min_value=0.0, step=10.0, format="%.2f")
+        m_bs = st.number_input("Introduzca Bolívares (Bs)", min_value=0.0, step=10.0, format="%.2f")
         if m_bs > 0:
             res_val = m_bs / v_tasa
             st.success(f"Son: **{res_val:,.2f} $**")
@@ -138,7 +140,6 @@ with st.expander("➕ REGISTRAR NUEVO PRODUCTO", expanded=True):
             if existe.data:
                 st.error(f"⚠️ El producto '{nombre_cap}' ya existe.")
             else:
-                # CORRECCIÓN AQUÍ: Se usa ':' para los diccionarios de Supabase
                 supabase.table("productos").insert({
                     "modulo": m_new, 
                     "nombre": nombre_cap, 
