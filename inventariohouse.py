@@ -7,59 +7,100 @@ from supabase import create_client, Client
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="Inventario JYI - Versión Final Blindada v3", layout="wide")
 
-# ==============================================================================
-# --- MODIFICACIÓN VISUAL: BOTÓN GRANDE DE DIVISAS ---
+# --- MODIFICACIÓN VISUAL: ICONO DE CONVERSIÓN DE DINERO ---
+
+# (Esta es la única parte nueva, no afecta tu lógica)
+
 st.markdown("""
+
     <style>
-        /* 1. Ocultar el icono de flechitas original de Streamlit */
-        [data-testid="stSidebarCollapseIcon"] {
+
+        /* 1. Ocultar totalmente el icono antiguo 'keyboard_double_arrow_right' */
+
+        [data-testid="collapsedControl"] .st-emotion-cache-12bp31y {
+
             display: none !important;
+
         }
 
-        /* 2. Convertir el área de control en un botón grande y profesional */
-        [data-testid="collapsedControl"]::after {
-            content: "💰 ABRIR CONVERSIÓN DE DIVISA";
-            visibility: visible;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            width: 320px; /* Ancho considerable */
-            height: 55px; /* Altura de botón real */
-            background-color: #2e7d32; /* Verde tipo billete/dinero */
-            color: white !important;
-            border-radius: 12px;
-            font-weight: 800;
-            font-size: 16px;
-            cursor: pointer;
-            box-shadow: 0px 4px 15px rgba(0,0,0,0.5);
-            border: 2px solid #4caf50;
-            transition: all 0.3s ease;
-            text-align: center;
-        }
-
-        /* 3. Efecto visual al pasar el mouse (hover) */
-        [data-testid="collapsedControl"]:hover::after {
-            background-color: #388e3c;
-            transform: scale(1.03);
-            box-shadow: 0px 6px 20px rgba(0,0,0,0.6);
-        }
-
-        /* 4. Ajustar el contenedor padre para que el botón sea clickeable en toda su área */
-        [data-testid="collapsedControl"] {
-            cursor: pointer;
-            width: 350px !important;
-            height: 85px !important;
-        }
         
-        /* Asegurar que el contenido principal no se pegue al botón */
-        .main .block-container {
-            padding-top: 100px;
+
+        /* 2. Crear y estilizar el nuevo botón intuitivo con icono de dinero */
+
+        [data-testid="collapsedControl"]::after {
+
+            content: "💰 ABRIR CONVERSOR";
+
+            visibility: visible;
+
+            position: absolute;
+
+            top: 20px;
+
+            left: 20px;
+
+            background-color: #f39c12; /* Color naranja llamativo */
+
+            color: white;
+
+            padding: 10px 20px;
+
+            border-radius: 8px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+
+            font-size: 14px;
+
+            letter-spacing: 1px;
+
+            /* Pequeña animación de pulso para resaltar */
+
+            animation: pulse_jyi 2s infinite;
+
+            display: flex;
+
+            align_items: center;
+
+            gap: 5px;
+
         }
+
+        
+
+        /* Asegurar que al hacer clic en el texto también abra la barra */
+
+        [data-testid="collapsedControl"] {
+
+            cursor: pointer;
+
+            width: 210px; /* Ajuste para cubrir el texto */
+
+            height: 60px;
+
+        }
+
+
+
+        /* Animación de pulso */
+
+        @keyframes pulse_jyi {
+
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(243, 156, 18, 0.7); }
+
+            70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(243, 156, 18, 0); }
+
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(243, 156, 18, 0); }
+
+        }
+
     </style>
+
     """, unsafe_allow_html=True)
+
 # ==============================================================================
 
 # --- CONEXIÓN ---
