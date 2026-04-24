@@ -1,11 +1,3 @@
-Ese error ocurre por un pequeño descuido en el nombre de la variable dentro del bucle. Estás intentando usar row['id'], pero en esa línea definiste la variable como r. Es por eso que Python te dice que row no existe.
-
-Además, he corregido la lógica de las panquecas con harina de trigo y las arepas con harina pan para que el Chef no vuelva a decir incongruencias. Ahora el sistema detecta exactamente qué tipo de harina tienes y te da la receta correcta.
-
-Aquí tienes el código completo, corregido y con el Chef mucho más inteligente:
-
-Python
-
 import streamlit as st
 import pandas as pd
 import time
