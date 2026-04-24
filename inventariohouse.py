@@ -9,11 +9,13 @@ import google.generativeai as genai
 st.set_page_config(page_title="Inventario MI❤️AMOR JYI", layout="wide")
 
 # --- CONFIGURACIÓN DE GEMINI IA ---
-# Forzamos la configuración para evitar errores de versión de API
 if "GEMINI_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    # Cambiamos la forma de inicializar el modelo
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    # Intentamos con la ruta completa del modelo para evitar el error 404
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash-latest')
+    except:
+        model = genai.GenerativeModel('gemini-pro') # Respaldo por si falla el anterior
 else:
     st.error("Falta la clave GEMINI_API_KEY en los secretos.")
 
@@ -162,13 +164,15 @@ if login():
                 if st.button("🪄 Generar Recetas", use_container_width=True):
                     with st.spinner("Consultando al Chef..."):
                         try:
-                            prompt = f"Tengo estos ingredientes: {', '.join(lista_ingredientes)}. Sugiere 3 recetas rápidas. Título en negrita, ingredientes y pasos cortos."
-                            # Usamos la llamada más básica y estable posible
+                            # Prompt directo y sencillo
+                            prompt = f"Tengo estos ingredientes: {', '.join(lista_ingredientes)}. Dame 3 recetas rápidas con pasos cortos y títulos en negrita."
                             response = model.generate_content(prompt)
-                            st.markdown(response.text)
+                            if response.text:
+                                st.markdown(response.text)
+                            else:
+                                st.error("La IA no devolvió texto. Intenta de nuevo.")
                         except Exception as e:
                             st.error(f"Error técnico: {e}")
-                            st.info("Prueba recargar la página en unos segundos.")
             else:
                 st.warning("No hay ingredientes en 'Comida' para crear recetas.")
         else:
