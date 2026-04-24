@@ -3,22 +3,25 @@ import pandas as pd
 import time
 from datetime import datetime
 from supabase import create_client, Client
+import google.generativeai as genai  # Nueva importación para la IA
 
 # --- CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="Inventario MI❤️AMOR JYI", layout="wide")
 
+# --- CONFIGURACIÓN DE GEMINI IA ---
+if "GEMINI_API_KEY" in st.secrets:
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+    model = genai.GenerativeModel('gemini-1.5-flash')
+else:
+    st.error("Falta la clave GEMINI_API_KEY en los secretos de Streamlit.")
+
 # --- ESTILOS PERSONALIZADOS (CSS) ---
 st.markdown("""
     <style>
-    /* Estilo para los títulos de las pestañas */
     button[data-baseweb="tab"] { font-size: 20px; font-weight: bold; }
-    
-    /* Colores para los botones de guardado según sección */
     .stButton>button[key^="s_Comida"] { background-color: #FF4B4B; color: white; border-radius: 10px; }
     .stButton>button[key^="s_Hogar"] { background-color: #0083B8; color: white; border-radius: 10px; }
     .stButton>button[key^="s_PorComprar"] { background-color: #28a745; color: white; border-radius: 10px; }
-    
-    /* Estilo general para los expanders */
     .st-expanderHeader { background-color: #f0f2f6; border-radius: 10px; font-weight: bold; }
     </style>
     """, unsafe_allow_html=True)
@@ -67,7 +70,7 @@ if login():
         st.rerun()
 
     # --- FORMULARIO AGREGAR ---
-    with st.expander("➕ REGAR NUEVO PRODUCTO", expanded=False):
+    with st.expander("➕ AGREGAR NUEVO PRODUCTO", expanded=False):
         c1, c2 = st.columns(2)
         mod = c1.selectbox("¿A qué lista pertenece?", ["Comida", "Hogar", "Por Comprar"])
         nom = c1.text_input("Nombre del Producto")
@@ -77,7 +80,6 @@ if login():
         if st.button("🚀 GUARDAR EN LA NUBE", use_container_width=True):
             if nom:
                 n_cap = nom.strip().capitalize()
-                # Fecha actual de Venezuela/Local
                 fecha_hoy = datetime.now().strftime("%d/%m/%Y %H:%M")
                 
                 exist = supabase.table("productos").select("id").eq("nombre", n_cap).eq("modulo", mod).execute()
@@ -90,7 +92,7 @@ if login():
                         "nombre": n_cap, 
                         "precio": pre, 
                         "cantidad": can,
-                        "created_at": datetime.now().isoformat() # Fecha técnica para la DB
+                        "created_at": datetime.now().isoformat()
                     }).execute()
                     st.toast(f"¡{n_cap} guardado!", icon="✅")
                     st.success(f"✨ REGISTRADO EL {fecha_hoy}")
@@ -106,7 +108,6 @@ if login():
     df_all = pd.DataFrame(response.data)
 
     nombres_tabs = ["Comida", "Hogar", "Por Comprar"]
-    # Los emojis ayudan a que sean más llamativas
     tabs = st.tabs(["🍕 COMIDA", "🏠 HOGAR", "🛒 POR COMPRAR"])
 
     for i, tab in enumerate(tabs):
@@ -118,7 +119,6 @@ if login():
                 df = pd.DataFrame()
 
             if not df.empty:
-                # Formatear la fecha para que sea legible
                 df['fecha_f'] = pd.to_datetime(df['created_at']).dt.strftime('%d/%m %H:%M')
                 
                 cfg = {
@@ -130,12 +130,10 @@ if login():
                 }
                 
                 df_v = df[["id", "nombre", "precio", "cantidad", "fecha_f"]]
-                # Identificador único para el editor
                 k_ed = f"ed_{m_name.replace(' ', '')}"
                 
                 edit_df = st.data_editor(df_v, column_config=cfg, use_container_width=True, hide_index=True, key=k_ed)
 
-                # El botón de guardar ahora tiene un nombre de clase CSS gracias al key
                 if st.button(f"💾 Guardar cambios en {m_name}", key=f"s_{m_name.replace(' ', '')}"):
                     for index, row in edit_df.iterrows():
                         supabase.table("productos").update({
@@ -146,7 +144,6 @@ if login():
                     st.rerun()
 
                 st.divider()
-                # Borrado y Traspaso
                 cx, cy = st.columns(2)
                 id_d = cx.number_input("ID para borrar", min_value=0, key=f"d_{m_name}", step=1)
                 if cx.button(f"🗑️ Eliminar permanentemente", key=f"bd_{m_name}"):
@@ -159,8 +156,37 @@ if login():
                         supabase.table("productos").update({"modulo": "Comida"}).eq("id", id_m).execute()
                         st.rerun()
 
-                # Resumen financiero
                 df['Sub'] = df['precio'] * df['cantidad']
                 st.metric(f"Inversión en {m_name}", f"${df['Sub'].sum():,.2f}")
             else:
                 st.info(f"La lista de {m_name} está vacía por ahora.")
+
+    # --- NUEVA SECCIÓN: CHEF IA ---
+    st.divider()
+    st.subheader("👨‍🍳 Chef IA: ¿Qué cocinamos hoy?")
+    
+    with st.expander("Sugerencias de recetas personalizadas", expanded=False):
+        if not df_all.empty:
+            # Filtramos solo lo que hay en la despensa (Comida) con cantidad > 0
+            df_comida = df_all[(df_all['modulo'] == 'Comida') & (df_all['cantidad'] > 0)]
+            lista_ingredientes = df_comida['nombre'].tolist()
+            
+            if lista_ingredientes:
+                st.write(f"**Tus ingredientes:** {', '.join(lista_ingredientes)}")
+                
+                if st.button("🪄 Generar Recetas con mi Inventario", use_container_width=True):
+                    with st.spinner("Pensando en algo rico..."):
+                        try:
+                            prompt = f"""
+                            Actúa como un chef creativo. Tengo estos ingredientes: {', '.join(lista_ingredientes)}.
+                            Sugiere 3 recetas que pueda hacer. Sé breve y usa un tono amigable.
+                            Formato: Título en negrita, ingredientes usados y preparación rápida.
+                            """
+                            response = model.generate_content(prompt)
+                            st.markdown(response.text)
+                        except Exception as e:
+                            st.error(f"Hubo un problema con la IA: {e}")
+            else:
+                st.warning("No tienes ingredientes suficientes en la sección 'Comida' para sugerir recetas.")
+        else:
+            st.info("El inventario está vacío.")
