@@ -10,14 +10,13 @@ st.set_page_config(page_title="Inventario MI❤️AMOR JYI", layout="wide")
 
 # --- CONFIGURACIÓN DE GEMINI IA ---
 if "GEMINI_API_KEY" in st.secrets:
-    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    # Intentamos con la ruta completa del modelo para evitar el error 404
-    try:
-        model = genai.GenerativeModel('gemini-1.5-flash-latest')
-    except:
-        model = genai.GenerativeModel('gemini-pro') # Respaldo por si falla el anterior
+    # Forzamos el transporte a 'rest' para evitar conflictos de gRPC en la nube
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"], transport='rest')
+    
+    # Usamos el nombre base del modelo que tiene mayor compatibilidad
+    model = genai.GenerativeModel('gemini-1.5-flash')
 else:
-    st.error("Falta la clave GEMINI_API_KEY en los secretos.")
+    st.error("Falta la clave GEMINI_API_KEY en los secretos de Streamlit.")
 
 # --- ESTILOS PERSONALIZADOS (CSS) ---
 st.markdown("""
@@ -154,26 +153,22 @@ if login():
 
     # --- SECCIÓN: CHEF IA ---
     st.divider()
-    st.subheader("👨‍🍳 Chef IA: ¿Qué cocinamos hoy?")
-    with st.expander("Sugerencias de recetas personalizadas", expanded=False):
+    st.subheader("👨‍🍳 Chef IA")
+    with st.expander("Sugerencias de recetas", expanded=False):
         if not df_all.empty:
             df_comida = df_all[(df_all['modulo'] == 'Comida') & (df_all['cantidad'] > 0)]
             lista_ingredientes = df_comida['nombre'].tolist()
             if lista_ingredientes:
-                st.write(f"**Ingredientes disponibles:** {', '.join(lista_ingredientes)}")
                 if st.button("🪄 Generar Recetas", use_container_width=True):
-                    with st.spinner("Consultando al Chef..."):
+                    with st.spinner("Cocinando ideas..."):
                         try:
-                            # Prompt directo y sencillo
-                            prompt = f"Tengo estos ingredientes: {', '.join(lista_ingredientes)}. Dame 3 recetas rápidas con pasos cortos y títulos en negrita."
-                            response = model.generate_content(prompt)
-                            if response.text:
-                                st.markdown(response.text)
-                            else:
-                                st.error("La IA no devolvió texto. Intenta de nuevo.")
+                            # Prompt directo para evitar errores de codificación
+                            query = f"Recetas con: {', '.join(lista_ingredientes)}. Dame 3 ideas rápidas."
+                            response = model.generate_content(query)
+                            st.markdown(response.text)
                         except Exception as e:
-                            st.error(f"Error técnico: {e}")
+                            st.error(f"Error de API: {e}")
             else:
-                st.warning("No hay ingredientes en 'Comida' para crear recetas.")
+                st.warning("Agrega ingredientes a 'Comida' primero.")
         else:
             st.info("Inventario vacío.")
