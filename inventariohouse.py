@@ -1,31 +1,44 @@
 import streamlit as st
 import pandas as pd
 import time
+import requests  # Importante para la nueva forma de llamar a la IA
 from datetime import datetime
 from supabase import create_client, Client
-import google.generativeai as genai
 
 # --- CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="Inventario MI❤️AMOR JYI", layout="wide")
 
-# --- CONFIGURACIÓN DE GEMINI IA ---
-if "GEMINI_API_KEY" in st.secrets:
-    # Forzamos la configuración con la API v1 (la más estable)
-    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+# --- FUNCIÓN PARA LLAMAR A GEMINI (MÉTODO DIRECTO) ---
+def llamar_gemini_api(prompt):
+    """Llamada directa vía REST para evitar el error 404 de v1beta"""
+    if "GEMINI_API_KEY" not in st.secrets:
+        return "Error: No se encontró la clave GEMINI_API_KEY"
     
-    # Intentamos cargar el modelo de forma explícita
-    # El nombre 'models/gemini-1.5-flash' es la ruta completa requerida por la API v1
-    model = genai.GenerativeModel('models/gemini-1.5-flash')
-else:
-    st.error("Falta la clave GEMINI_API_KEY en los secretos de Streamlit.")
+    api_key = st.secrets["GEMINI_API_KEY"]
+    # Forzamos el uso de la versión v1 (Estable)
+    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
+    
+    headers = {'Content-Type': 'application/json'}
+    payload = {
+        "contents": [{
+            "parts": [{"text": prompt}]
+        }]
+    }
+    
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        if response.status_code == 200:
+            return response.json()['candidates'][0]['content']['parts'][0]['text']
+        else:
+            return f"Error de Google (Código {response.status_code}): {response.text}"
+    except Exception as e:
+        return f"Error de conexión: {str(e)}"
 
-# --- ESTILOS PERSONALIZADOS (CSS) ---
+# --- ESTILOS PERSONALIZADOS ---
 st.markdown("""
     <style>
     button[data-baseweb="tab"] { font-size: 20px; font-weight: bold; }
     .stButton>button[key^="s_Comida"] { background-color: #FF4B4B; color: white; border-radius: 10px; }
-    .stButton>button[key^="s_Hogar"] { background-color: #0083B8; color: white; border-radius: 10px; }
-    .stButton>button[key^="s_PorComprar"] { background-color: #28a745; color: white; border-radius: 10px; }
     .st-expanderHeader { background-color: #f0f2f6; border-radius: 10px; font-weight: bold; }
     </style>
     """, unsafe_allow_html=True)
@@ -53,8 +66,6 @@ def login():
                 if u in validos and validos[u] == p:
                     st.session_state.auth = True
                     st.session_state.user = u.capitalize()
-                    st.success(f"Bienvenido/a {st.session_state.user}")
-                    time.sleep(1)
                     st.rerun()
                 else:
                     st.error("Usuario o clave incorrectos")
@@ -65,12 +76,6 @@ def login():
 if login():
     st.title("📦 INVENTARIO MI❤️AMOR JYI")
     
-    # Barra lateral
-    st.sidebar.write(f"Usuario: **{st.session_state.user}**")
-    if st.sidebar.button("Cerrar Sesión"):
-        st.session_state.auth = False
-        st.rerun()
-
     # --- FORMULARIO AGREGAR ---
     with st.expander("➕ AGREGAR NUEVO PRODUCTO", expanded=False):
         c1, c2 = st.columns(2)
@@ -82,91 +87,50 @@ if login():
         if st.button("🚀 GUARDAR EN LA NUBE", use_container_width=True):
             if nom:
                 n_cap = nom.strip().capitalize()
-                fecha_hoy = datetime.now().strftime("%d/%m/%Y %H:%M")
-                exist = supabase.table("productos").select("id").eq("nombre", n_cap).eq("modulo", mod).execute()
-                if len(exist.data) > 0:
-                    st.warning("⚠️ Ese producto ya existe en esta lista.")
-                else:
-                    supabase.table("productos").insert({
-                        "modulo": mod, "nombre": n_cap, "precio": pre, 
-                        "cantidad": can, "created_at": datetime.now().isoformat()
-                    }).execute()
-                    st.toast(f"¡{n_cap} guardado!", icon="✅")
-                    st.success(f"✨ REGISTRADO EL {fecha_hoy}")
-                    time.sleep(1)
-                    st.rerun()
-            else:
-                st.error("Por favor, escribe un nombre.")
+                supabase.table("productos").insert({
+                    "modulo": mod, "nombre": n_cap, "precio": pre, 
+                    "cantidad": can, "created_at": datetime.now().isoformat()
+                }).execute()
+                st.toast(f"¡{n_cap} guardado!")
+                time.sleep(1)
+                st.rerun()
 
-    st.divider()
-
-    # --- VISUALIZACIÓN POR PESTAÑAS ---
+    # --- PESTAÑAS ---
     response = supabase.table("productos").select("*").order("id").execute()
     df_all = pd.DataFrame(response.data if response.data else [])
 
-    nombres_tabs = ["Comida", "Hogar", "Por Comprar"]
     tabs = st.tabs(["🍕 COMIDA", "🏠 HOGAR", "🛒 POR COMPRAR"])
+    nombres_tabs = ["Comida", "Hogar", "Por Comprar"]
 
     for i, tab in enumerate(tabs):
         m_name = nombres_tabs[i]
         with tab:
             df = df_all[df_all['modulo'] == m_name].copy() if not df_all.empty else pd.DataFrame()
-
             if not df.empty:
                 df['fecha_f'] = pd.to_datetime(df['created_at']).dt.strftime('%d/%m %H:%M')
-                cfg = {
-                    "id": st.column_config.NumberColumn("🆔", disabled=True),
-                    "nombre": st.column_config.TextColumn("Producto", disabled=True),
-                    "precio": st.column_config.NumberColumn("Precio ($)", format="$%.2f"),
-                    "cantidad": st.column_config.NumberColumn("Cant"),
-                    "fecha_f": st.column_config.TextColumn("📅 Agregado", disabled=True)
-                }
-                df_v = df[["id", "nombre", "precio", "cantidad", "fecha_f"]]
-                k_ed = f"ed_{m_name.replace(' ', '')}"
-                edit_df = st.data_editor(df_v, column_config=cfg, use_container_width=True, hide_index=True, key=k_ed)
+                cfg = {"id": st.column_config.NumberColumn("🆔", disabled=True)}
+                edit_df = st.data_editor(df[["id", "nombre", "precio", "cantidad", "fecha_f"]], column_config=cfg, use_container_width=True, hide_index=True, key=f"ed_{m_name}")
 
-                if st.button(f"💾 Guardar cambios en {m_name}", key=f"s_{m_name.replace(' ', '')}"):
-                    for index, row in edit_df.iterrows():
-                        supabase.table("productos").update({
-                            "precio": row['precio'], "cantidad": row['cantidad']
-                        }).eq("id", row['id']).execute()
-                    st.toast("Sincronizado con éxito")
+                if st.button(f"💾 Guardar {m_name}", key=f"s_{m_name}"):
+                    for _, row in edit_df.iterrows():
+                        supabase.table("productos").update({"precio": row['precio'], "cantidad": row['cantidad']}).eq("id", row['id']).execute()
                     st.rerun()
-
-                st.divider()
-                cx, cy = st.columns(2)
-                id_d = cx.number_input("ID para borrar", min_value=0, key=f"d_{m_name}", step=1)
-                if cx.button(f"🗑️ Eliminar permanentemente", key=f"bd_{m_name}"):
-                    supabase.table("productos").delete().eq("id", id_d).execute()
-                    st.rerun()
-                if m_name == "Por Comprar":
-                    id_m = cy.number_input("ID para mover a Comida", min_value=0, key="m_pc", step=1)
-                    if cy.button("🚚 Mover a Despensa", key="bm_pc"):
-                        supabase.table("productos").update({"modulo": "Comida"}).eq("id", id_m).execute()
-                        st.rerun()
-                df['Sub'] = df['precio'] * df['cantidad']
-                st.metric(f"Inversión en {m_name}", f"${df['Sub'].sum():,.2f}")
             else:
-                st.info(f"La lista de {m_name} está vacía por ahora.")
+                st.info("Lista vacía.")
 
-    # --- SECCIÓN: CHEF IA ---
+    # --- SECCIÓN: CHEF IA (ESTABLE) ---
     st.divider()
     st.subheader("👨‍🍳 Chef IA")
-    with st.expander("Sugerencias de recetas", expanded=False):
+    with st.expander("Sugerencias de recetas", expanded=True):
         if not df_all.empty:
             df_comida = df_all[(df_all['modulo'] == 'Comida') & (df_all['cantidad'] > 0)]
-            lista_ingredientes = df_comida['nombre'].tolist()
-            if lista_ingredientes:
-                if st.button("🪄 Generar Recetas", use_container_width=True):
-                    with st.spinner("Consultando al Chef..."):
-                        try:
-                            # Llamada limpia
-                            prompt = f"Tengo {', '.join(lista_ingredientes)}. Dame 3 recetas rápidas."
-                            response = model.generate_content(prompt)
-                            st.markdown(response.text)
-                        except Exception as e:
-                            st.error(f"Error de API: {e}")
+            ingredientes = df_comida['nombre'].tolist()
+            if ingredientes:
+                st.write(f"**Tienes:** {', '.join(ingredientes)}")
+                if st.button("🪄 Generar Recetas Ahora", use_container_width=True):
+                    with st.spinner("Conectando con el Chef..."):
+                        prompt = f"Actúa como chef. Tengo: {', '.join(ingredientes)}. Dame 3 recetas rápidas con pasos cortos."
+                        resultado = llamar_gemini_api(prompt)
+                        st.markdown(resultado)
             else:
-                st.warning("No hay ingredientes suficientes.")
-        else:
-            st.info("Inventario vacío.")
+                st.warning("No hay comida en el inventario.")
