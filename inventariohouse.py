@@ -1,8 +1,3 @@
-¡Hecho! He aplicado la "cirugía" al código para usar el modelo más estable de Mistral en Hugging Face, que es el que mejor está respondiendo a las peticiones REST actualmente y evita ese error 404.
-
-Mantuve toda tu estructura de inventario, estilos y seguridad intacta. Aquí tienes el código listo para copiar y pegar:
-
-Python
 
 import streamlit as st
 import pandas as pd
