@@ -30,19 +30,16 @@ def generar_menu_inteligente(productos):
         icono = "⚡ (Sencilla)" if tipo == "Sencilla" else "⭐ (Gourmet)"
         menu[bloque].append({"titulo": f"{icono} {titulo}", "receta": receta})
 
-    # --- DESAYUNOS ---
     agregar("☀️ DESAYUNO", "Arepa de Maíz en Doble Cocción", "1. Hidratar harina con sal. 2. Amasar 3 min. 3. Sellar en budare 4 min por lado. 4. Terminar 5 min tapado para inflar.")
     agregar("☀️ DESAYUNO", "Sándwich Tostado con Presión", "1. Mantequilla en caras externas. 2. Queso al centro. 3. Tostar aplicando presión física para fundir.")
     agregar("☀️ DESAYUNO", "Arepa Pelúa con Desglasado", "1. Sellar carne a fuego máximo. 2. Desglasar con 2 cdas de agua para jugos. 3. Rellenar con queso amarillo.", "Gourmet")
     agregar("☀️ DESAYUNO", "Omelette de Técnica Francesa", "1. Batir 2 huevos hasta espumar. 2. Fuego bajo con mantequilla. 3. Remover centro para cremosidad. 4. Doblar.", "Gourmet")
 
-    # --- ALMUERZOS ---
     agregar("🍴 ALMUERZO", "Pasta con Emulsión de Almidón", "1. Cocinar al dente. 2. Reservar agua de cocción. 3. Batir pasta, mantequilla y agua para ligar salsa.")
     agregar("🍴 ALMUERZO", "Arroz Blanco Graneado Técnico", "1. Nacarar arroz con ajo 2 min. 2. Añadir agua hirviendo (2:1). 3. Cocinar tapado 18 min sin abrir.")
     agregar("🍴 ALMUERZO", "Bistec Sellado 'Maitre d'Hotel'", "1. Secar carne. 2. Sellar 3 min por lado en hierro. 3. Reposar 2 min para redistribuir jugos.", "Gourmet")
     agregar("🍴 ALMUERZO", "Salteado de Carne al Comino", "1. Cubos de carne con comino intenso. 2. Sellar fuego alto. 3. Crear salsa oscura con fondo de sartén.", "Gourmet")
 
-    # --- CENAS ---
     agregar("🌙 CENA", "Tostada de Maíz 'Crocante'", "1. Arepa abierta por mitad. 2. Tostar caras internas hasta galleta. 3. Capa fina de queso.")
     agregar("🌙 CENA", "Pasta 'Cacio e Pepe' Sencilla", "1. Pasta corta. 2. Pimienta negra y queso seco. 3. Agua de pasta para unir.")
     agregar("🌙 CENA", "Panini de Proteína Fundida", "1. Pan relleno, envuelto en aluminio. 2. Calentar con peso encima. 3. Vapor ablanda, exterior cruje.", "Gourmet")
@@ -60,8 +57,8 @@ if not st.session_state.auth:
             st.rerun()
     st.stop()
 
-# --- SIDEBAR: MONITORES Y CONVERSOR DESPLEGABLE ---
-st.sidebar.title("💰 Monitor de Divisas")
+# --- SIDEBAR: MONITORES Y CONVERSOR RESALTADO ---
+st.sidebar.markdown("## 💰 Monitor de Divisas")
 st.sidebar.info(f"🏦 BCV: **{TASAS['🏦 BCV']}**")
 st.sidebar.warning(f"⚖️ Paralelo: **{TASAS['⚖️ Paralelo']}**")
 st.sidebar.success(f"💎 USDT: **{TASAS['💎 USDT']}**")
@@ -69,21 +66,41 @@ st.sidebar.error(f"🇪🇺 Euro: **{TASAS['🇪🇺 Euro']}**")
 
 st.sidebar.divider()
 
-# MEJORA: CONVERSOR EN DESPLEGABLE CON SELECCIÓN DE TASA
-with st.sidebar.expander("🧮 CONVERSOR INTELIGENTE", expanded=True):
-    tasa_seleccionada = st.selectbox("Selecciona la tasa de referencia:", list(TASAS.keys()), index=0)
+# --- DISEÑO DEL CONVERSOR MEJORADO ---
+with st.sidebar.container():
+    st.markdown("### 🔄 CALCULADORA DE CAMBIO")
+    
+    # Selector de tasa
+    tasa_seleccionada = st.selectbox("📌 Tasa a usar:", list(TASAS.keys()), index=0)
     valor_tasa = TASAS[tasa_seleccionada]
     
-    modo = st.radio("Dirección:", ["$ a Bolívares", "Bolívares a $"])
+    # Modo de conversión con iconos
+    modo = st.radio("Acción:", ["💵 $ a Bolívares", "🇻🇪 Bolívares a $"])
     
-    if modo == "$ a Bolívares":
-        m_dol = st.number_input("Monto en Dólares ($)", min_value=0.0, step=1.0, format="%.2f")
+    st.markdown("---")
+    
+    if "💵" in modo:
+        m_dol = st.number_input("Monto en $", min_value=0.0, step=1.0, format="%.2f")
         if m_dol > 0:
-            st.success(f"Son: **{(m_dol * valor_tasa):,.2f} Bs**")
+            resultado = m_dol * valor_tasa
+            st.markdown(f"""
+                <div style="background-color:#1e3d33; padding:15px; border-radius:10px; border-left: 5px solid #2ecc71;">
+                    <p style="margin:0; font-size:13px; color:#aecbbd;">Resultado en Bs:</p>
+                    <h2 style="margin:0; color:#2ecc71;">{resultado:,.2f} Bs</h2>
+                </div>
+            """, unsafe_allow_html=True)
     else:
-        m_bs = st.number_input("Monto en Bolívares (Bs)", min_value=0.0, step=10.0, format="%.2f")
+        m_bs = st.number_input("Monto en Bs", min_value=0.0, step=10.0, format="%.2f")
         if m_bs > 0:
-            st.success(f"Son: **{(m_bs / valor_tasa):,.2f} $**")
+            resultado = m_bs / valor_tasa
+            st.markdown(f"""
+                <div style="background-color:#3d1e1e; padding:15px; border-radius:10px; border-left: 5px solid #e74c3c;">
+                    <p style="margin:0; font-size:13px; color:#cbb9b9;">Resultado en $:</p>
+                    <h2 style="margin:0; color:#e74c3c;">{resultado:,.2f} $</h2>
+                </div>
+            """, unsafe_allow_html=True)
+
+st.sidebar.divider()
 
 # --- INTERFAZ PRINCIPAL ---
 st.title(f"📦 INVENTARIO JYI - {st.session_state.user}")
