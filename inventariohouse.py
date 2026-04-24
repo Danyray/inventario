@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import time
@@ -9,46 +8,41 @@ from supabase import create_client, Client
 # --- CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="Inventario MI❤️AMOR JYI", layout="wide")
 
-# --- FUNCIÓN PARA LA IA DEL CHEF (MODELO MISTRAL ESTABLE) ---
-def llamar_ia_chef(prompt):
+# --- FUNCIÓN PARA LA IA DEL CHEF (MODELO DE ALTA DISPONIBILIDAD) ---
+def llamar_ia_chef(ingredientes_lista):
     if "HUGGINGFACE_TOKEN" not in st.secrets:
-        return "⚠️ Configura HUGGINGFACE_TOKEN en los Secrets de Streamlit."
+        return "⚠️ Falta el token HUGGINGFACE_TOKEN en los Secrets."
 
-    # Usamos Mistral-7B-Instruct-v0.3, que es el más confiable hoy
-    url = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3"
+    # Modelo ligero de Google (FLAN-T5): Menos propenso a errores 404/503
+    url = "https://api-inference.huggingface.co/models/google/flan-t5-large"
     token = st.secrets["HUGGINGFACE_TOKEN"]
     headers = {"Authorization": f"Bearer {token}"}
     
-    # Formato optimizado para Mistral [INST]
-    payload = {
-        "inputs": f"<s>[INST] Eres un chef experto. Tengo estos ingredientes: {prompt}. Sugiere 3 recetas rápidas con títulos en negrita. [/INST]</s>",
-        "parameters": {
-            "max_new_tokens": 500, 
-            "temperature": 0.7,
-            "return_full_text": False
-        }
-    }
+    prompt = f"Tengo estos ingredientes: {', '.join(ingredientes_lista)}. Dime 3 nombres de platos deliciosos que puedo cocinar."
+    payload = {"inputs": prompt}
     
-    for intento in range(3):
+    # Intentos de conexión
+    for intento in range(2):
         try:
-            response = requests.post(url, headers=headers, json=payload, timeout=25)
-            
+            response = requests.post(url, headers=headers, json=payload, timeout=15)
             if response.status_code == 200:
                 res_json = response.json()
                 if isinstance(res_json, list) and len(res_json) > 0:
-                    return res_json[0].get('generated_text', "No se recibió respuesta.").strip()
-                return "Respuesta inesperada del servidor."
-            
+                    return f"👨‍🍳 **Sugerencia del Chef:** {res_json[0].get('generated_text')}"
             elif response.status_code == 503:
-                # El modelo está cargando en el servidor de Hugging Face
-                st.warning(f"👨‍🍳 El Chef está precalentando... (Intento {intento + 1}/3)")
-                time.sleep(12) 
-            else:
-                return f"❌ Error del servidor de IA (Código {response.status_code})"
-        except Exception as e:
+                time.sleep(5)
+                continue
+        except:
             continue
-            
-    return "😴 El Chef no responde. Intenta de nuevo en unos segundos."
+    
+    # --- SISTEMA DE RESPALDO (FALLBACK) ---
+    # Si la IA falla, el código genera una respuesta lógica basada en tus ingredientes
+    sugerencias_locales = [
+        f"Salteado de {ingredientes_lista[0]}",
+        f"Ensalada mixta con {ingredientes_lista[-1]}",
+        "Pasta o Arroz con los ingredientes disponibles"
+    ]
+    return f"👨‍🍳 **Sugerencia rápida (Modo Offline):** {', '.join(sugerencias_locales)}"
 
 # --- ESTILOS PERSONALIZADOS (CSS) ---
 st.markdown("""
@@ -78,7 +72,6 @@ def login():
     if not st.session_state.auth:
         st.title("🔐 Acceso al Sistema")
         validos = {"ignacio": "yosa0325", "joseilys": "yosa0325"}
-
         with st.form("login_form"):
             u = st.text_input("Usuario").lower().strip()
             p = st.text_input("Contraseña", type="password")
@@ -184,19 +177,19 @@ if login():
 
     # --- SECCIÓN: CHEF IA ---
     st.divider()
-    st.subheader("👨‍🍳 Chef IA: ¿Qué cocinamos hoy?")
-    with st.expander("Sugerencias de recetas personalizadas", expanded=False):
+    st.subheader("👨‍🍳 Chef IA")
+    with st.expander("Ideas para cocinar con lo que tienes", expanded=False):
         if not df_all.empty:
             df_comida = df_all[(df_all['modulo'] == 'Comida') & (df_all['cantidad'] > 0)]
-            lista_ingredientes = df_comida['nombre'].tolist()
+            ing = df_comida['nombre'].tolist()
             
-            if lista_ingredientes:
-                st.write(f"**Ingredientes:** {', '.join(lista_ingredientes)}")
-                if st.button("🪄 Generar Recetas", use_container_width=True):
-                    with st.spinner("El Chef está pensando..."):
-                        receta = llamar_ia_chef(", ".join(lista_ingredientes))
-                        st.markdown(receta)
+            if ing:
+                st.write(f"**Ingredientes:** {', '.join(ing)}")
+                if st.button("🪄 Generar Sugerencias", use_container_width=True):
+                    with st.spinner("Consultando al Chef..."):
+                        resultado = llamar_ia_chef(ing)
+                        st.markdown(resultado)
             else:
-                st.warning("No hay ingredientes en 'Comida' para crear recetas.")
+                st.warning("No tienes alimentos registrados.")
         else:
-            st.info("Agrega productos al inventario para usar el Chef.")
+            st.info("Agrega productos para activar al Chef.")
