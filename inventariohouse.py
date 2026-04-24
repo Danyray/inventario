@@ -8,26 +8,48 @@ from supabase import create_client, Client
 # --- CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="Inventario MI❤️AMOR JYI", layout="wide")
 
-# --- FUNCIÓN PARA LA IA (MODELO LIBRE DE BLOQUEOS) ---
+# --- FUNCIÓN PARA LA IA DEL CHEF (Hugging Face - Sin Bloqueo Regional) ---
 def llamar_ia_chef(prompt):
-    # Usaremos un modelo de Mistral AI que es gratuito y no tiene bloqueo regional
-    # No necesitas API Key para esta prueba rápida, pero lo ideal es registrar una en Mistral.ai
-    url = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3"
+    if "HUGGINGFACE_TOKEN" not in st.secrets:
+        return "⚠️ Configura HUGGINGFACE_TOKEN en los Secrets de Streamlit."
+
+    # Modelo Zephyr: Rápido, potente y suele estar activo
+    url = "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta"
+    token = st.secrets["HUGGINGFACE_TOKEN"]
+    headers = {"Authorization": f"Bearer {token}"}
     
-    # Si quieres usar tu clave de Hugging Face, ponla en secrets. Si no, usa esta pública temporal:
-    headers = {"Authorization": "Bearer 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"} # Ejemplo
+    payload = {
+        "inputs": f"<|system|>\nEres un chef experto y amigable. Sugiere recetas claras y cortas.</s>\n<|user|>\n{prompt}</s>\n<|assistant|>",
+        "parameters": {"max_new_tokens": 500, "temperature": 0.7}
+    }
     
-    payload = {"inputs": f"<s>[INST] {prompt} [/INST]"}
-    
-    try:
-        response = requests.post(url, headers=headers, json=payload)
-        if response.status_code == 200:
-            resultado = response.json()[0]['generated_text']
-            return resultado.split("[/INST]")[-1] # Limpiamos la respuesta
-        else:
-            return "El Chef IA está tomando un descanso (Servidor saturado). Intenta en 10 segundos."
-    except:
-        return "Error de conexión con el Chef."
+    # Intentos automáticos por si el modelo está "durmiendo"
+    for intento in range(3):
+        try:
+            response = requests.post(url, headers=headers, json=payload, timeout=20)
+            if response.status_code == 200:
+                resultado = response.json()[0]['generated_text']
+                return resultado.split("<|assistant|>")[-1].strip()
+            elif response.status_code == 503:
+                st.warning(f"👨‍🍳 El Chef está precalentando el horno... (Cargando modelo, intento {intento + 1}/3)")
+                time.sleep(10)
+            else:
+                return f"❌ Error del servidor de IA (Código {response.status_code})"
+        except Exception as e:
+            continue
+            
+    return "😴 El Chef no pudo responder. Intenta de nuevo en unos segundos."
+
+# --- ESTILOS PERSONALIZADOS (CSS) ---
+st.markdown("""
+    <style>
+    button[data-baseweb="tab"] { font-size: 20px; font-weight: bold; }
+    .stButton>button[key^="s_Comida"] { background-color: #FF4B4B; color: white; border-radius: 10px; }
+    .stButton>button[key^="s_Hogar"] { background-color: #0083B8; color: white; border-radius: 10px; }
+    .stButton>button[key^="s_PorComprar"] { background-color: #28a745; color: white; border-radius: 10px; }
+    .st-expanderHeader { background-color: #f0f2f6; border-radius: 10px; font-weight: bold; }
+    </style>
+    """, unsafe_allow_html=True)
 
 # --- CONEXIÓN A SUPABASE ---
 @st.cache_resource
@@ -38,45 +60,134 @@ def conectar_supabase():
 
 supabase = conectar_supabase()
 
-# --- AUTENTICACIÓN ---
-if "auth" not in st.session_state: st.session_state.auth = False
+# --- SISTEMA DE AUTENTICACIÓN ---
+def login():
+    if "auth" not in st.session_state:
+        st.session_state.auth = False
 
-if not st.session_state.auth:
-    st.title("🔐 Acceso al Sistema")
-    with st.form("login"):
-        u = st.text_input("Usuario").lower().strip()
-        p = st.text_input("Contraseña", type="password")
-        if st.form_submit_button("Entrar"):
-            if (u == "ignacio" or u == "joseilys") and p == "yosa0325":
-                st.session_state.auth = True
-                st.session_state.user = u.capitalize()
-                st.rerun()
-            else: st.error("Clave incorrecta")
-else:
-    st.title(f"📦 INVENTARIO - {st.session_state.user}")
+    if not st.session_state.auth:
+        st.title("🔐 Acceso al Sistema")
+        validos = {"ignacio": "yosa0325", "joseilys": "yosa0325"}
+
+        with st.form("login_form"):
+            u = st.text_input("Usuario").lower().strip()
+            p = st.text_input("Contraseña", type="password")
+            if st.form_submit_button("Entrar"):
+                if u in validos and validos[u] == p:
+                    st.session_state.auth = True
+                    st.session_state.user = u.capitalize()
+                    st.success(f"Bienvenido/a {st.session_state.user}")
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    st.error("Usuario o clave incorrectos")
+        return False
+    return True
+
+# --- LÓGICA DE LA APP ---
+if login():
+    st.title("📦 INVENTARIO MI❤️AMOR JYI")
     
-    # Cargar datos
-    res = supabase.table("productos").select("*").order("id").execute()
-    df_all = pd.DataFrame(res.data if res.data else [])
+    st.sidebar.write(f"Usuario: **{st.session_state.user}**")
+    if st.sidebar.button("Cerrar Sesión"):
+        st.session_state.auth = False
+        st.rerun()
 
-    # Pestañas
-    tab1, tab2, tab3 = st.tabs(["🍕 COMIDA", "🏠 HOGAR", "🛒 COMPRAS"])
-    listas = ["Comida", "Hogar", "Por Comprar"]
-    for i, t in enumerate([tab1, tab2, tab3]):
-        with t:
-            df = df_all[df_all['modulo'] == listas[i]] if not df_all.empty else pd.DataFrame()
-            st.dataframe(df, use_container_width=True)
+    # --- FORMULARIO AGREGAR ---
+    with st.expander("➕ AGREGAR NUEVO PRODUCTO", expanded=False):
+        c1, c2 = st.columns(2)
+        mod = c1.selectbox("¿A qué lista pertenece?", ["Comida", "Hogar", "Por Comprar"])
+        nom = c1.text_input("Nombre del Producto")
+        pre = c2.number_input("Precio Unitario ($)", min_value=0.0, step=0.1)
+        can = c2.number_input("Cantidad Actual", min_value=1, step=1)
 
-    # --- CHEF IA ---
+        if st.button("🚀 GUARDAR EN LA NUBE", use_container_width=True):
+            if nom:
+                n_cap = nom.strip().capitalize()
+                fecha_hoy = datetime.now().strftime("%d/%m/%Y %H:%M")
+                exist = supabase.table("productos").select("id").eq("nombre", n_cap).eq("modulo", mod).execute()
+                
+                if len(exist.data) > 0:
+                    st.warning("⚠️ Ese producto ya existe en esta lista.")
+                else:
+                    supabase.table("productos").insert({
+                        "modulo": mod, "nombre": n_cap, "precio": pre, 
+                        "cantidad": can, "created_at": datetime.now().isoformat()
+                    }).execute()
+                    st.toast(f"¡{n_cap} guardado!", icon="✅")
+                    st.success(f"✨ REGISTRADO EL {fecha_hoy}")
+                    time.sleep(1)
+                    st.rerun()
+            else:
+                st.error("Por favor, escribe un nombre.")
+
     st.divider()
-    st.subheader("👨‍🍳 Chef IA (Sin bloqueos regionales)")
-    
-    if not df_all.empty:
-        comida = df_all[(df_all['modulo'] == 'Comida') & (df_all['cantidad'] > 0)]
-        ing = comida['nombre'].tolist()
-        if ing:
-            st.write(f"**Ingredientes:** {', '.join(ing)}")
-            if st.button("🪄 ¡Chef, dame ideas!", use_container_width=True):
-                with st.spinner("Pensando recetas para ti..."):
-                    p = f"Tengo {', '.join(ing)}. Dime 3 nombres de platos rápidos que puedo cocinar."
-                    st.markdown(llamar_ia_chef(p))
+
+    # --- VISUALIZACIÓN POR PESTAÑAS ---
+    response = supabase.table("productos").select("*").order("id").execute()
+    df_all = pd.DataFrame(response.data if response.data else [])
+
+    nombres_tabs = ["Comida", "Hogar", "Por Comprar"]
+    tabs = st.tabs(["🍕 COMIDA", "🏠 HOGAR", "🛒 POR COMPRAR"])
+
+    for i, tab in enumerate(tabs):
+        m_name = nombres_tabs[i]
+        with tab:
+            df = df_all[df_all['modulo'] == m_name].copy() if not df_all.empty else pd.DataFrame()
+
+            if not df.empty:
+                df['fecha_f'] = pd.to_datetime(df['created_at']).dt.strftime('%d/%m %H:%M')
+                cfg = {
+                    "id": st.column_config.NumberColumn("🆔", disabled=True),
+                    "nombre": st.column_config.TextColumn("Producto", disabled=True),
+                    "precio": st.column_config.NumberColumn("Precio ($)", format="$%.2f"),
+                    "cantidad": st.column_config.NumberColumn("Cant"),
+                    "fecha_f": st.column_config.TextColumn("📅 Agregado", disabled=True)
+                }
+                df_v = df[["id", "nombre", "precio", "cantidad", "fecha_f"]]
+                k_ed = f"ed_{m_name.replace(' ', '')}"
+                edit_df = st.data_editor(df_v, column_config=cfg, use_container_width=True, hide_index=True, key=k_ed)
+
+                if st.button(f"💾 Guardar cambios en {m_name}", key=f"s_{m_name.replace(' ', '')}"):
+                    for index, row in edit_df.iterrows():
+                        supabase.table("productos").update({"precio": row['precio'], "cantidad": row['cantidad']}).eq("id", row['id']).execute()
+                    st.toast("Sincronizado con éxito")
+                    st.rerun()
+
+                st.divider()
+                cx, cy = st.columns(2)
+                id_d = cx.number_input("ID para borrar", min_value=0, key=f"d_{m_name}", step=1)
+                if cx.button(f"🗑️ Eliminar permanentemente", key=f"bd_{m_name}"):
+                    supabase.table("productos").delete().eq("id", id_d).execute()
+                    st.rerun()
+                
+                if m_name == "Por Comprar":
+                    id_m = cy.number_input("ID para mover a Comida", min_value=0, key="m_pc", step=1)
+                    if cy.button("🚚 Mover a Despensa", key="bm_pc"):
+                        supabase.table("productos").update({"modulo": "Comida"}).eq("id", id_m).execute()
+                        st.rerun()
+
+                df['Sub'] = df['precio'] * df['cantidad']
+                st.metric(f"Inversión en {m_name}", f"${df['Sub'].sum():,.2f}")
+            else:
+                st.info(f"La lista de {m_name} está vacía por ahora.")
+
+    # --- SECCIÓN: CHEF IA (NUEVA CONEXIÓN) ---
+    st.divider()
+    st.subheader("👨‍🍳 Chef IA: ¿Qué cocinamos hoy?")
+    with st.expander("Sugerencias de recetas personalizadas", expanded=False):
+        if not df_all.empty:
+            df_comida = df_all[(df_all['modulo'] == 'Comida') & (df_all['cantidad'] > 0)]
+            lista_ingredientes = df_comida['nombre'].tolist()
+            
+            if lista_ingredientes:
+                st.write(f"**Ingredientes disponibles:** {', '.join(lista_ingredientes)}")
+                if st.button("🪄 Generar Recetas", use_container_width=True):
+                    with st.spinner("El Chef está pensando..."):
+                        prompt = f"Tengo estos ingredientes: {', '.join(lista_ingredientes)}. Sugiere 3 recetas rápidas y ricas. Títulos en negrita."
+                        receta = llamar_ia_chef(prompt)
+                        st.markdown(receta)
+            else:
+                st.warning("No hay ingredientes en 'Comida' para crear recetas.")
+        else:
+            st.info("Agrega productos al inventario para usar el Chef.")
