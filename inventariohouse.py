@@ -3,15 +3,16 @@ import pandas as pd
 import time
 from datetime import datetime
 from supabase import create_client, Client
-import google.generativeai as genai  # Nueva importación para la IA
+import google.generativeai as genai
 
 # --- CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="Inventario MI❤️AMOR JYI", layout="wide")
 
 # --- CONFIGURACIÓN DE GEMINI IA ---
+# Se usa model_name explícito para evitar el error 404 en Streamlit Cloud
 if "GEMINI_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel(model_name='gemini-1.5-flash')
 else:
     st.error("Falta la clave GEMINI_API_KEY en los secretos de Streamlit.")
 
@@ -161,32 +162,32 @@ if login():
             else:
                 st.info(f"La lista de {m_name} está vacía por ahora.")
 
-    # --- NUEVA SECCIÓN: CHEF IA ---
+    # --- SECCIÓN: CHEF IA ---
     st.divider()
     st.subheader("👨‍🍳 Chef IA: ¿Qué cocinamos hoy?")
     
     with st.expander("Sugerencias de recetas personalizadas", expanded=False):
         if not df_all.empty:
-            # Filtramos solo lo que hay en la despensa (Comida) con cantidad > 0
             df_comida = df_all[(df_all['modulo'] == 'Comida') & (df_all['cantidad'] > 0)]
             lista_ingredientes = df_comida['nombre'].tolist()
             
             if lista_ingredientes:
-                st.write(f"**Tus ingredientes:** {', '.join(lista_ingredientes)}")
+                st.write(f"**Ingredientes disponibles:** {', '.join(lista_ingredientes)}")
                 
-                if st.button("🪄 Generar Recetas con mi Inventario", use_container_width=True):
-                    with st.spinner("Pensando en algo rico..."):
+                if st.button("🪄 Generar Recetas", use_container_width=True):
+                    with st.spinner("Consultando al Chef..."):
                         try:
                             prompt = f"""
                             Actúa como un chef creativo. Tengo estos ingredientes: {', '.join(lista_ingredientes)}.
-                            Sugiere 3 recetas que pueda hacer. Sé breve y usa un tono amigable.
-                            Formato: Título en negrita, ingredientes usados y preparación rápida.
+                            Sugiere 3 recetas rápidas. Usa un tono amigable.
+                            Formato: Título en negrita, ingredientes y pasos cortos.
                             """
+                            # Llamada directa al modelo
                             response = model.generate_content(prompt)
                             st.markdown(response.text)
                         except Exception as e:
-                            st.error(f"Hubo un problema con la IA: {e}")
+                            st.error(f"Error de conexión con la IA: {e}")
             else:
-                st.warning("No tienes ingredientes suficientes en la sección 'Comida' para sugerir recetas.")
+                st.warning("No hay ingredientes en 'Comida' para crear recetas.")
         else:
-            st.info("El inventario está vacío.")
+            st.info("Inventario vacío.")
