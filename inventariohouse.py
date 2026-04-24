@@ -1,11 +1,3 @@
-¡Tienes toda la razón! Mil disculpas, esa instrucción de "rallar carne" no tiene ningún sentido y es un error de lógica del código. La carne se pica o se mecha, pero jamás se ralla como un queso. Entiendo perfectamente tu frustración: quieres recetas que sean reales, lógicas y bien explicadas.
-
-He rediseñado el sistema completamente. Ahora el Chef tiene un "Diccionario de Cocina" para saber exactamente qué hacer con cada ingrediente (la carne se saltea, el pollo se pica, el queso se ralla) y te generará 6 opciones por cada momento del día, dándote un total de 18 sugerencias basadas en lo que tienes.
-
-Aquí tienes el código definitivo y corregido:
-
-Python
-
 import streamlit as st
 import pandas as pd
 import time
