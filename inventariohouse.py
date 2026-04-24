@@ -7,14 +7,6 @@ from supabase import create_client, Client
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="Inventario JYI - Versión Final Blindada v3", layout="wide")
 
-¡Entendido! Vamos a transformar ese pequeño control en un botón grande y profesional que ocupe un espacio importante en la pantalla para que sea imposible no verlo.
-
-He ajustado el código CSS para que el botón tenga un tamaño mayor, un texto más claro ("ABRIR CONVERSIÓN DE DIVISA") y colores que resalten sobre el fondo oscuro de tu app.
-
-Aquí tienes el bloque listo para sustituir el anterior:
-
-Python
-
 # ==============================================================================
 # --- MODIFICACIÓN VISUAL: BOTÓN GRANDE DE DIVISAS ---
 st.markdown("""
