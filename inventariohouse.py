@@ -8,51 +8,6 @@ from supabase import create_client, Client
 st.set_page_config(page_title="Inventario JYI - Versión Final Blindada v3", layout="wide")
 
 # ==============================================================================
-# --- ESTILO PARA EL BOTÓN PERSONALIZADO ---
-st.markdown("""
-    <style>
-        /* 1. Ocultamos el icono original de las flechitas */
-        [data-testid="stSidebarCollapseIcon"] {
-            display: none !important;
-        }
-        
-        /* 2. Creamos el botón personalizado con tu texto */
-        [data-testid="collapsedControl"]::after {
-            content: "💰 ABRIR CONVERSIÓN DE DIVISA";
-            visibility: visible;
-            display: block;
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            background-color: #007bff; /* Azul profesional */
-            color: white;
-            padding: 12px 24px;
-            border-radius: 10px;
-            font-weight: bold;
-            font-size: 14px;
-            cursor: pointer;
-            box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
-            border: 1px solid #0056b3;
-            white-space: nowrap;
-            transition: 0.3s;
-        }
-
-        /* 3. Efecto al pasar el ratón para que sepa que es un botón */
-        [data-testid="collapsedControl"]:hover::after {
-            background-color: #0056b3;
-            transform: scale(1.05);
-        }
-
-        /* Ajustamos el contenedor para que el botón quepa bien */
-        [data-testid="collapsedControl"] {
-            width: 280px;
-            height: 60px;
-            cursor: pointer;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-
-# Aquí continúa el resto de tu código original...
 # --- MODIFICACIÓN VISUAL: ICONO DE CONVERSIÓN DE DINERO ---
 # (Esta es la única parte nueva, no afecta tu lógica)
 st.markdown("""
