@@ -1,11 +1,3 @@
-¡Entiendo perfectamente! Quieres que el Chef deje de dar "títulos" y pase a darte soluciones reales: ideas variadas, el paso a paso de la preparación y una imagen para que se les antoje el plato a ti y a Joseilys.
-
-Para lograr esto, vamos a usar una técnica llamada "Expanders" de Streamlit. Al hacer clic en el nombre del plato, se desplegará la receta. Además, he configurado el código para que te dé 5 ideas y busque imágenes ilustrativas.
-
-Aquí tienes el código completo y actualizado:
-
-Python
-
 import streamlit as st
 import pandas as pd
 import time
