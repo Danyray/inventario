@@ -5,7 +5,7 @@ from datetime import datetime
 from supabase import create_client, Client
 
 # --- CONFIGURACIÓN ---
-st.set_page_config(page_title="Inventario JYI - Versión Final Blindada", layout="wide")
+st.set_page_config(page_title="Inventario JYI - Versión Final Blindada v3", layout="wide")
 
 # --- CONEXIÓN ---
 @st.cache_resource
@@ -17,7 +17,7 @@ supabase = conectar_supabase()
 # --- TASA BCV FIJA (REFERENCIA OFICIAL) ---
 TASA_BCV_FIJA = 483.87 
 
-# --- LÓGICA DEL CHEF ESPECÍFICO (4 OPCIONES DETALLADAS) ---
+# --- LÓGICA DEL CHEF SUPERIOR (12 OPCIONES TOTALES) ---
 def generar_menu_inteligente(productos):
     menu = {"☀️ DESAYUNO": [], "🍴 ALMUERZO": [], "🌙 CENA": []}
 
@@ -25,19 +25,26 @@ def generar_menu_inteligente(productos):
         icono = "⚡ (Sencilla)" if tipo == "Sencilla" else "⭐ (Gourmet)"
         menu[bloque].append({"titulo": f"{icono} {titulo}", "receta": receta})
 
-    # --- DESAYUNOS ---
-    agregar("☀️ DESAYUNO", "Arepa de Maíz con Sellado en Budare", "1. Hidratar 1 taza de harina con 1.2 tazas de agua y sal marina. 2. Amasar 4 min hasta eliminar grumos. 3. Formar discos de 2.5cm de grosor. 4. Sellar en budare caliente 5 min por lado hasta formar costra. 5. Terminar 3 min a fuego bajo para cocción interna. Rellenar con queso rallado fresco.")
-    agregar("☀️ DESAYUNO", "Sándwich de Presión en Mantequilla", "1. Untar 10g de mantequilla en las caras externas del pan. 2. Colocar 2 láminas de queso en el centro. 3. Tostar en sartén aplicando presión con una espátula durante 2 min por lado a fuego medio hasta lograr un dorado uniforme y fundido total.")
+    # --- DESAYUNOS (4 OPCIONES) ---
+    agregar("☀️ DESAYUNO", "Arepa de Maíz en Doble Cocción", "1. Hidratar harina (1:1.2 agua/harina) con sal. 2. Amasar 3 min. 3. Sellar en budare 4 min por lado. 4. Terminar 5 min en horno o tapado a fuego mínimo para inflar. Rellenar con queso rallado.")
+    agregar("☀️ DESAYUNO", "Sándwich Tostado con Presión", "1. Untar mantequilla en ambas caras externas del pan. 2. Colocar queso en el centro. 3. Tostar en sartén aplicando presión física con otra olla o prensa 2 min por lado para compactar miga y fundir.")
     # Gourmet
-    agregar("☀️ DESAYUNO", "Arepa Pelúa con Carne en Reducción de Jugos", "1. Sellar 150g de carne en tiras finas con comino y sal a fuego máximo (Técnica de salteado). 2. Agregar 2 cdas de agua para desglasar el sartén y crear una salsa corta. 3. Abrir arepa asada, untar mantequilla y rellenar con la carne y queso amarillo rallado fino para que gratine con el calor residual.", "Gourmet")
-    agregar("☀️ DESAYUNO", "Omelette de Técnica Francesa", "1. Batir 2 huevos con una pizca de sal. 2. Verter en sartén con fuego mínimo y mantequilla. 3. Remover el centro constantemente para crear cremosidad. 4. Doblar en forma de media luna antes de que dore la base. Servir sobre arepa o pan tostado con lluvia de comino.", "Gourmet")
+    agregar("☀️ DESAYUNO", "Arepa Pelúa con Desglasado de Carne", "1. Sellar 150g de carne en tiras a fuego máximo hasta dorar. 2. Añadir 2 cdas de agua para recuperar los jugos del fondo del sartén. 3. Rellenar arepa asada con la carne jugosa y queso amarillo rallado grueso.", "Gourmet")
+    agregar("☀️ DESAYUNO", "Omelette Cremoso con Técnica de Batido", "1. Batir 2 huevos con sal hasta espumar. 2. Verter en sartén con mantequilla a fuego bajo. 3. Remover el centro con espátula mientras cuaja para crear textura sedosa. 4. Doblar y servir sobre pan tostado.", "Gourmet")
 
-    # --- ALMUERZOS ---
-    agregar("🍴 ALMUERZO", "Pasta al Dente con Emulsión de Mantequilla", "1. Hervir 1L de agua por cada 100g de pasta. 2. Cocinar 8-10 min (según empaque). 3. Antes de colar, reservar 1/4 taza de agua de cocción. 4. Mezclar pasta, agua reservada, mantequilla y queso para crear una salsa emulsionada que se adhiera al grano.")
-    agregar("🍴 ALMUERZO", "Arroz Blanco con Huevo Escalfado en Aceite", "1. Sofreír arroz con ajo antes del agua para soltar el grano. 2. Cocinar a fuego mínimo tapado 18 min. 3. Fríe un huevo en abundante aceite caliente bañando la yema con una cuchara (baño de aceite) para que quede blanca por fuera y líquida por dentro. Servir sobre el arroz.")
+    # --- ALMUERZOS (4 OPCIONES) ---
+    agregar("🍴 ALMUERZO", "Pasta con Emulsión de Almidón", "1. Cocinar pasta al dente. 2. Reservar media taza del agua de cocción (rica en almidón). 3. Mezclar pasta caliente, mantequilla y el agua reservada. 4. Batir vigorosamente para crear una salsa que brille sin usar crema.")
+    agregar("🍴 ALMUERZO", "Arroz Blanco Graneado Técnico", "1. Sofreír el arroz en aceite con ajo 2 min antes de añadir agua (Nacarado). 2. Añadir agua hirviendo (relación 2:1). 3. Cocinar tapado 18 min sin abrir la tapa para que el vapor termine la cocción perfecta.")
     # Gourmet
-    agregar("🍴 ALMUERZO", "Carne al Comino con Glaseado de Sartén", "1. Cortar carne en cubos uniformes de 2cm. 2. Sazonar con sal y comino molido. 3. Sellar en aceite caliente sin amontonar para evitar que la carne suelte agua. 4. Al dorar, apagar el fuego y tapar 2 min para redistribuir jugos. Servir con arroz moldeado en copa.", "Gourmet")
-    agregar("🍴 ALMUERZO", "Bistec 'Maitre' con Cebollas Caramelizadas", "1. Cocinar bistec a fuego alto 3 min por lado (término medio). 2. En el mismo sartén, agregar cebolla en aros con una pizca de azúcar y sal hasta que doren. 3. Servir la cebolla sobre la carne para que los jugos se mezclen. Acompañar con pasta emulsionada.", "Gourmet")
+    agregar("🍴 ALMUERZO", "Bistec Sellado 'Maitre d'Hotel'", "1. Secar la carne con papel antes de cocinar. 2. Sellar en sartén de hierro muy caliente 3 min por lado. 3. Reposar 2 min sobre el arroz caliente para que los jugos se redistribuyan. Decorar con aros de cebolla caramelizados.", "Gourmet")
+    agregar("🍴 ALMUERZO", "Salteado de Carne al Comino y Reducción", "1. Cubos de carne sazonados con sal y comino intenso. 2. Sellar a fuego alto. 3. Terminar con un chorrito de agua o caldo para crear una salsa oscura y potente. Servir con arroz moldeado en copa.", "Gourmet")
+
+    # --- CENAS (4 OPCIONES) ---
+    agregar("🌙 CENA", "Tostada de Maíz 'Crocante'", "1. Abrir una arepa ya cocida por la mitad. 2. Tostar ambas caras internas en el budare hasta que queden como galleta. 3. Agregar una capa fina de queso para una cena ligera y crujiente.")
+    agregar("🌙 CENA", "Pasta 'Cacio e Pepe' Sencilla", "1. Pasta corta cocida. 2. Mezclar con abundante pimienta negra recién molida y el queso rallado más seco que tengas en stock. 3. Añadir agua de pasta para ligar.")
+    # Gourmet
+    agregar("🌙 CENA", "Panini Gourmet de Proteína Fundida", "1. Pan relleno con tiras de carne y doble porción de queso. 2. Envolver en papel aluminio y calentar en sartén con peso encima 4 min. 3. El vapor interno ablandará el pan mientras el exterior queda crocante.", "Gourmet")
+    agregar("🌙 CENA", "Degustación de Queso y Especias", "1. Cortar queso en cubos de 1cm. 2. Saltear brevemente en sartén con comino y una pizca de azúcar hasta que los bordes doren. 3. Servir con trozos de pan tostado en punta.", "Gourmet")
 
     return menu
 
@@ -64,17 +71,24 @@ if monto_dol > 0:
 # --- INTERFAZ PRINCIPAL ---
 st.title(f"📦 INVENTARIO JYI - {st.session_state.user}")
 
-# 1. REGISTRO AL INICIO
+# 1. REGISTRO AL INICIO (CON PROTECCIÓN ANTI-DUPLICADOS)
 with st.expander("➕ REGISTRAR NUEVO PRODUCTO", expanded=True):
     f1, f2 = st.columns(2)
     m_new = f1.selectbox("Destino", ["Comida", "Hogar", "Por Comprar"])
     n_new = f1.text_input("Nombre del producto")
     p_new = f2.number_input("Precio Unitario $", min_value=0.0, format="%.2f")
     c_new = f2.number_input("Cantidad", min_value=1)
+    
     if st.button("🚀 GUARDAR"):
         if n_new:
-            supabase.table("productos").insert({"modulo": m_new, "nombre": n_new.capitalize(), "precio": float(p_new), "cantidad": int(c_new), "created_at": datetime.now().isoformat()}).execute()
-            st.success("Guardado"); time.sleep(1); st.rerun()
+            nombre_cap = n_new.capitalize().strip()
+            # VERIFICACIÓN DE DUPLICADOS
+            existe = supabase.table("productos").select("*").eq("modulo", m_new).eq("nombre", nombre_cap).execute()
+            if existe.data:
+                st.error(f"⚠️ El producto '{nombre_cap}' ya existe en la tabla {m_new}. Modifica el existente si es necesario.")
+            else:
+                supabase.table("productos").insert({"modulo": m_new, "nombre": nombre_cap, "precio": float(p_new), "cantidad": int(c_new), "created_at": datetime.now().isoformat()}).execute()
+                st.success("✅ Guardado exitosamente"); time.sleep(1); st.rerun()
 
 st.divider()
 
@@ -84,14 +98,12 @@ df_all = pd.DataFrame(res.data if res.data else [])
 
 t_comida, t_hogar, t_compras = st.tabs(["🍕 COMIDA", "🏠 HOGAR", "🛒 POR COMPRAR"])
 
-# --- FUNCIÓN PARA RENDERIZAR TABLAS CON ACTUALIZACIÓN EN TIEMPO REAL ---
+# --- FUNCIÓN DE TABLAS RE-ACTIVAS ---
 def render_tabla_gestion(df_sec, mod):
     if not df_sec.empty:
-        # Cálculo inicial
         df_sec['Subtotal $'] = df_sec['precio'] * df_sec['cantidad']
         df_sec['Subtotal Bs.'] = df_sec['Subtotal $'] * TASA_BCV_FIJA
         
-        # El data_editor permite editar y recalcular
         edited_df = st.data_editor(
             df_sec[["id", "nombre", "precio", "cantidad", "Subtotal $", "Subtotal Bs."]], 
             use_container_width=True, hide_index=True, 
@@ -99,22 +111,17 @@ def render_tabla_gestion(df_sec, mod):
             key=f"editor_{mod}"
         )
         
-        # Recalcular totales basados en la edición actual
         total_usd = (edited_df['precio'] * edited_df['cantidad']).sum()
-        total_bs = total_usd * TASA_BCV_FIJA
-        
         c1, c2 = st.columns(2)
         c1.metric(f"Total {mod} ($)", f"{total_usd:.2f} $")
-        c2.metric(f"Total {mod} (Bs)", f"{total_bs:,.2f} Bs")
+        c2.metric(f"Total {mod} (Bs)", f"{(total_usd * TASA_BCV_FIJA):,.2f} Bs")
         
-        # Botón para persistir cambios si se editó algo
         if not edited_df.equals(df_sec[["id", "nombre", "precio", "cantidad", "Subtotal $", "Subtotal Bs."]]):
-            if st.button(f"💾 Guardar Cambios de {mod}"):
-                for index, row in edited_df.iterrows():
+            if st.button(f"💾 Guardar Cambios en {mod}"):
+                for _, row in edited_df.iterrows():
                     supabase.table("productos").update({"precio": float(row['precio']), "cantidad": int(row['cantidad'])}).eq("id", row['id']).execute()
-                st.success("Cambios guardados"); time.sleep(1); st.rerun()
-    else:
-        st.info(f"{mod} vacío.")
+                st.rerun()
+    else: st.info(f"{mod} vacío.")
 
 # --- PESTAÑA COMIDA (GESTIÓN + CHEF) ---
 with t_comida:
@@ -124,40 +131,44 @@ with t_comida:
         
         st.divider()
         st.subheader("⚙️ Operaciones de Inventario")
-        p_sel = st.selectbox("Seleccionar producto:", df_c['nombre'].tolist())
+        p_sel = st.selectbox("Seleccionar producto para acción:", df_c['nombre'].tolist())
         item = df_c[df_c['nombre'] == p_sel].iloc[0]
         
         c1, c2 = st.columns(2)
-        if c1.button(f"🛒 Mover '{p_sel}' a Compras"): st.session_state.m_move = True
+        # MOVER A COMPRAS
+        if c1.button(f"🛒 Enviar '{p_sel}' a Compras"): st.session_state.m_move = True
         if st.session_state.get('m_move'):
             if st.button("✅ Confirmar Envío"):
                 check = supabase.table("productos").select("*").eq("modulo", "Por Comprar").eq("nombre", item['nombre']).execute()
                 if check.data:
                     n_cant = int(check.data[0]['cantidad']) + int(item['cantidad'])
                     supabase.table("productos").update({"cantidad": n_cant}).eq("id", check.data[0]['id']).execute()
-                    supabase.table("productos").delete().eq("id", item['id']).execute()
                 else:
                     supabase.table("productos").update({"modulo": "Por Comprar"}).eq("id", item['id']).execute()
+                supabase.table("productos").delete().eq("id", item['id']).execute()
                 st.session_state.m_move = False; st.rerun()
 
+        # ELIMINAR (CORREGIDO)
         if c2.button(f"🗑️ Eliminar '{p_sel}'"): st.session_state.m_del = True
         if st.session_state.get('m_del'):
-            if st.button("🔥 Confirmar Borrado"):
-                supabase.table("productos").delete().eq("id", item['id']).execute()
-                st.session_state.m_del = False; st.rerun()
+            st.error(f"¿Eliminar '{p_sel}' permanentemente?")
+            if st.button("🔥 SÍ, ELIMINAR"):
+                # Corrección: Uso directo del ID del item filtrado para asegurar el borrado
+                supabase.table("productos").delete().eq("id", int(item['id'])).execute()
+                st.session_state.m_del = False
+                st.success("Producto eliminado."); time.sleep(1); st.rerun()
 
         st.divider()
-        st.subheader("👨‍🍳 Chef de Alta Especificación")
-        if st.button("🪄 Generar Menú Gourmet Técnico"):
+        st.subheader("👨‍🍳 El Chef: Menú de 12 Opciones")
+        if st.button("🪄 Generar Todas las Opciones (Desayuno, Almuerzo y Cena)"):
             menu = generar_menu_inteligente(df_c[df_c['cantidad'] > 0]['nombre'].tolist())
             for m, platos in menu.items():
-                if platos:
-                    st.write(f"### {m}")
-                    cols = st.columns(2)
-                    for idx, p in enumerate(platos):
-                        with cols[idx % 2]:
-                            with st.expander(p['titulo']): st.info(p['receta'])
-    else: st.info("Sin comida registrada.")
+                st.write(f"### {m}")
+                cols = st.columns(2)
+                for idx, p in enumerate(platos):
+                    with cols[idx % 2]:
+                        with st.expander(p['titulo']): st.info(p['receta'])
+    else: st.info("Sin comida.")
 
 with t_hogar:
     df_h = df_all[df_all['modulo'] == 'Hogar'].copy() if not df_all.empty else pd.DataFrame()
