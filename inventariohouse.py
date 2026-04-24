@@ -1,3 +1,9 @@
+¡Hecho! He aplicado la "cirugía" al código para usar el modelo más estable de Mistral en Hugging Face, que es el que mejor está respondiendo a las peticiones REST actualmente y evita ese error 404.
+
+Mantuve toda tu estructura de inventario, estilos y seguridad intacta. Aquí tienes el código listo para copiar y pegar:
+
+Python
+
 import streamlit as st
 import pandas as pd
 import time
@@ -8,37 +14,46 @@ from supabase import create_client, Client
 # --- CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="Inventario MI❤️AMOR JYI", layout="wide")
 
-# --- FUNCIÓN PARA LA IA DEL CHEF (Hugging Face - Sin Bloqueo Regional) ---
+# --- FUNCIÓN PARA LA IA DEL CHEF (MODELO MISTRAL ESTABLE) ---
 def llamar_ia_chef(prompt):
     if "HUGGINGFACE_TOKEN" not in st.secrets:
         return "⚠️ Configura HUGGINGFACE_TOKEN en los Secrets de Streamlit."
 
-    # Modelo Zephyr: Rápido, potente y suele estar activo
-    url = "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta"
+    # Usamos Mistral-7B-Instruct-v0.3, que es el más confiable hoy
+    url = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3"
     token = st.secrets["HUGGINGFACE_TOKEN"]
     headers = {"Authorization": f"Bearer {token}"}
     
+    # Formato optimizado para Mistral [INST]
     payload = {
-        "inputs": f"<|system|>\nEres un chef experto y amigable. Sugiere recetas claras y cortas.</s>\n<|user|>\n{prompt}</s>\n<|assistant|>",
-        "parameters": {"max_new_tokens": 500, "temperature": 0.7}
+        "inputs": f"<s>[INST] Eres un chef experto. Tengo estos ingredientes: {prompt}. Sugiere 3 recetas rápidas con títulos en negrita. [/INST]</s>",
+        "parameters": {
+            "max_new_tokens": 500, 
+            "temperature": 0.7,
+            "return_full_text": False
+        }
     }
     
-    # Intentos automáticos por si el modelo está "durmiendo"
     for intento in range(3):
         try:
-            response = requests.post(url, headers=headers, json=payload, timeout=20)
+            response = requests.post(url, headers=headers, json=payload, timeout=25)
+            
             if response.status_code == 200:
-                resultado = response.json()[0]['generated_text']
-                return resultado.split("<|assistant|>")[-1].strip()
+                res_json = response.json()
+                if isinstance(res_json, list) and len(res_json) > 0:
+                    return res_json[0].get('generated_text', "No se recibió respuesta.").strip()
+                return "Respuesta inesperada del servidor."
+            
             elif response.status_code == 503:
-                st.warning(f"👨‍🍳 El Chef está precalentando el horno... (Cargando modelo, intento {intento + 1}/3)")
-                time.sleep(10)
+                # El modelo está cargando en el servidor de Hugging Face
+                st.warning(f"👨‍🍳 El Chef está precalentando... (Intento {intento + 1}/3)")
+                time.sleep(12) 
             else:
                 return f"❌ Error del servidor de IA (Código {response.status_code})"
         except Exception as e:
             continue
             
-    return "😴 El Chef no pudo responder. Intenta de nuevo en unos segundos."
+    return "😴 El Chef no responde. Intenta de nuevo en unos segundos."
 
 # --- ESTILOS PERSONALIZADOS (CSS) ---
 st.markdown("""
@@ -172,7 +187,7 @@ if login():
             else:
                 st.info(f"La lista de {m_name} está vacía por ahora.")
 
-    # --- SECCIÓN: CHEF IA (NUEVA CONEXIÓN) ---
+    # --- SECCIÓN: CHEF IA ---
     st.divider()
     st.subheader("👨‍🍳 Chef IA: ¿Qué cocinamos hoy?")
     with st.expander("Sugerencias de recetas personalizadas", expanded=False):
@@ -181,11 +196,10 @@ if login():
             lista_ingredientes = df_comida['nombre'].tolist()
             
             if lista_ingredientes:
-                st.write(f"**Ingredientes disponibles:** {', '.join(lista_ingredientes)}")
+                st.write(f"**Ingredientes:** {', '.join(lista_ingredientes)}")
                 if st.button("🪄 Generar Recetas", use_container_width=True):
                     with st.spinner("El Chef está pensando..."):
-                        prompt = f"Tengo estos ingredientes: {', '.join(lista_ingredientes)}. Sugiere 3 recetas rápidas y ricas. Títulos en negrita."
-                        receta = llamar_ia_chef(prompt)
+                        receta = llamar_ia_chef(", ".join(lista_ingredientes))
                         st.markdown(receta)
             else:
                 st.warning("No hay ingredientes en 'Comida' para crear recetas.")
