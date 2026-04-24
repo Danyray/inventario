@@ -5,39 +5,12 @@ from datetime import datetime
 from supabase import create_client, Client
 
 # --- CONFIGURACIÓN ---
-st.set_page_config(page_title="Inventario JYI - Versión Final Blindada v3", layout="wide")
-
-# --- ESTILO PARA HACER EL BOTÓN DE APERTURA LLAMATIVO ---
-st.markdown("""
-    <style>
-        /* Estilo para el botón de la barra lateral cuando está cerrada */
-        [data-testid="stSidebarCollapseIcon"] {
-            background-color: #f39c12 !important;
-            color: white !important;
-            border-radius: 50% !important;
-            padding: 5px !important;
-            animation: pulse 2s infinite;
-        }
-        
-        /* Tooltip o mensaje flotante cerca de las flechas */
-        [data-testid="stSidebar"]::before {
-            content: "💰 ABRIR CONVERSOR";
-            position: absolute;
-            top: 60px;
-            left: 10px;
-            font-size: 12px;
-            font-weight: bold;
-            color: #f39c12;
-            z-index: 1000;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(243, 156, 18, 0.7); }
-            70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(243, 156, 18, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(243, 156, 18, 0); }
-        }
-    </style>
-    """, unsafe_allow_html=True)
+# 'initial_sidebar_state="expanded"' hace que la barra lateral aparezca abierta siempre al cargar
+st.set_page_config(
+    page_title="Inventario JYI - Versión Final Blindada v3", 
+    layout="wide",
+    initial_sidebar_state="expanded" 
+)
 
 # --- CONEXIÓN ---
 @st.cache_resource
@@ -89,7 +62,9 @@ if not st.session_state.auth:
             st.rerun()
     st.stop()
 
-# --- SIDEBAR: MONITOR Y CONVERSOR LLAMATIVO ---
+# --- SIDEBAR: MONITOR Y CONVERSOR ---
+# Añadimos un aviso arriba de todo para que sepa que este es el panel de control
+st.sidebar.warning("⚡ PANEL DE CONTROL Y DIVISAS")
 st.sidebar.markdown("## 📊 Monitor de Divisas")
 st.sidebar.info(f"🏦 **BCV:** {TASAS['🏦 BCV']}")
 st.sidebar.warning(f"⚖️ **Paralelo:** {TASAS['⚖️ Paralelo']}")
@@ -98,7 +73,7 @@ st.sidebar.error(f"🇪🇺 **Euro:** {TASAS['🇪🇺 Euro']}")
 
 st.sidebar.divider()
 
-# --- NUEVO CONVERSOR LLAMATIVO ---
+# --- CONVERSOR LLAMATIVO ---
 with st.sidebar.container():
     st.markdown("### 🔄 CONVERSOR DE MONEDA")
     
