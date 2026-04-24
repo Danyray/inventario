@@ -42,3 +42,4 @@ st-gsheets-connection
 streamlit
 pandas
 supabase
+google-generativeai
