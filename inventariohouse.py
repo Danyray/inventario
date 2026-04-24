@@ -82,10 +82,9 @@ with st.expander("➕ REGISTRAR NUEVO PRODUCTO", expanded=True):
     if st.button("🚀 GUARDAR"):
         if n_new:
             nombre_cap = n_new.capitalize().strip()
-            # VERIFICACIÓN DE DUPLICADOS
             existe = supabase.table("productos").select("*").eq("modulo", m_new).eq("nombre", nombre_cap).execute()
             if existe.data:
-                st.error(f"⚠️ El producto '{nombre_cap}' ya existe en la tabla {m_new}. Modifica el existente si es necesario.")
+                st.error(f"⚠️ El producto '{nombre_cap}' ya existe en la tabla {m_new}.")
             else:
                 supabase.table("productos").insert({"modulo": m_new, "nombre": nombre_cap, "precio": float(p_new), "cantidad": int(c_new), "created_at": datetime.now().isoformat()}).execute()
                 st.success("✅ Guardado exitosamente"); time.sleep(1); st.rerun()
@@ -135,7 +134,6 @@ with t_comida:
         item = df_c[df_c['nombre'] == p_sel].iloc[0]
         
         c1, c2 = st.columns(2)
-        # MOVER A COMPRAS
         if c1.button(f"🛒 Enviar '{p_sel}' a Compras"): st.session_state.m_move = True
         if st.session_state.get('m_move'):
             if st.button("✅ Confirmar Envío"):
@@ -148,12 +146,10 @@ with t_comida:
                 supabase.table("productos").delete().eq("id", item['id']).execute()
                 st.session_state.m_move = False; st.rerun()
 
-        # ELIMINAR (CORREGIDO)
         if c2.button(f"🗑️ Eliminar '{p_sel}'"): st.session_state.m_del = True
         if st.session_state.get('m_del'):
             st.error(f"¿Eliminar '{p_sel}' permanentemente?")
             if st.button("🔥 SÍ, ELIMINAR"):
-                # Corrección: Uso directo del ID del item filtrado para asegurar el borrado
                 supabase.table("productos").delete().eq("id", int(item['id'])).execute()
                 st.session_state.m_del = False
                 st.success("Producto eliminado."); time.sleep(1); st.rerun()
@@ -162,12 +158,16 @@ with t_comida:
         st.subheader("👨‍🍳 El Chef: Menú de 12 Opciones")
         if st.button("🪄 Generar Todas las Opciones (Desayuno, Almuerzo y Cena)"):
             menu = generar_menu_inteligente(df_c[df_c['cantidad'] > 0]['nombre'].tolist())
-            for m, platos in menu.items():
-                st.write(f"### {m}")
-                cols = st.columns(2)
-                for idx, p in enumerate(platos):
-                    with cols[idx % 2]:
-                        with st.expander(p['titulo']): st.info(p['receta'])
+            
+            # --- MEJORA: SECCIONES DESPLEGABLES ---
+            for momento, platos in menu.items():
+                with st.expander(momento, expanded=False): # Desplegables cerrados por defecto
+                    cols = st.columns(2)
+                    for idx, p in enumerate(platos):
+                        with cols[idx % 2]:
+                            # Sub-desplegable para la receta específica
+                            with st.expander(p['titulo']): 
+                                st.info(p['receta'])
     else: st.info("Sin comida.")
 
 with t_hogar:
