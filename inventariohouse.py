@@ -5,57 +5,56 @@ from datetime import datetime
 from supabase import create_client, Client
 
 # --- CONFIGURACIÓN ---
-st.set_page_config(page_title="Inventario Gourmet JYI", layout="wide")
+st.set_page_config(page_title="Inventario JYI - Chef Pro", layout="wide")
 
-# --- LÓGICA DEL CHEF CREATIVO 3.0 ---
-def generar_menu_inteligente(productos):
+# --- LÓGICA DEL CHEF EQUILIBRADO (SENCILO + GOURMET) ---
+def generar_menu_mixto(productos):
     p_list = [str(p).lower() for p in productos]
-    
-    # Clasificación por palabras clave para mayor flexibilidad
     tiene = lambda x: any(x in item for item in p_list)
+    
+    # Clasificación de ingredientes para recetas
+    prot = [p.capitalize() for p in productos if any(x in p.lower() for x in ["carne", "pollo", "huevo", "atun", "queso", "mortadela"])]
+    carb = [p.capitalize() for p in productos if any(x in p.lower() for x in ["harina", "pan", "pasta", "arroz", "papa"])]
     
     menu = {"☀️ DESAYUNO": [], "🍴 ALMUERZO": [], "🌙 CENA": []}
 
-    # --- IDEAS DE DESAYUNO ---
+    # --- FUNCIONES DE APOYO ---
+    def agregar_opcion(bloque, titulo, receta, tipo="Sencilla"):
+        icono = "⚡" if tipo == "Sencilla" else "⭐"
+        menu[bloque].append({"titulo": f"{icono} {titulo}", "receta": receta})
+
+    # --- 1. DESAYUNOS (2 Sencillos + 2 Gourmet) ---
     if tiene("harina de maiz") or tiene("harina pan"):
-        if tiene("queso"):
-            menu["☀️ DESAYUNO"].append({
-                "titulo": "Arepas de Maíz con Costra de Queso",
-                "receta": "1. Prepara la masa clásica. 2. Ralla el queso y colócalo directamente en el sartén caliente; pon la arepa encima para que el queso se tueste y se pegue a la masa. 3. Sirve crocante.",
-                "img": ""
-            })
-    if tiene("harina de trigo"):
-        menu["☀️ DESAYUNO"].append({
-            "titulo": "Torrejas Dulces de Trigo",
-            "receta": "1. Crea una mezcla líquida con harina de trigo, agua y el azúcar que tienes en inventario. 2. Fríe porciones pequeñas hasta que doren. 3. Espolvorea un poco más de azúcar al salir.",
-            "img": ""
-        })
+        # Sencillos
+        agregar_opcion("☀️ DESAYUNO", "Arepa Básica con Queso", "1. Haz la masa con sal. 2. Cocina la arepa. 3. Rellena con queso rallado o en rebanadas.")
+        agregar_opcion("☀️ DESAYUNO", "Arepa con Mantequilla", "1. Prepara la arepa clásica. 2. Ábrela caliente y unta abundante mantequilla.")
+        # Gourmet
+        if tiene("carne"):
+            agregar_opcion("☀️ DESAYUNO", "Arepa 'Pelúa' Gourmet", "1. Saltea la carne en tiritas con comino hasta dorar. 2. Rellena la arepa con la carne y mucho queso rallado para que se funda.", "Gourmet")
+        if tiene("azucar"):
+            agregar_opcion("☀️ DESAYUNO", "Arepitas Dulces con Queso", "1. Agrega azúcar y un toque de harina de trigo a la masa de maíz. 2. Fríe en abundante aceite. 3. Acompaña con queso salado.", "Gourmet")
 
-    # --- IDEAS DE ALMUERZO (USANDO ESPECIAS) ---
-    if tiene("carne bistec"):
-        base = "Pasta" if tiene("pasta") else ("Arroz" if tiene("arroz") else "Maíz")
-        receta_carne = "1. Corta la carne en trozos pequeños. 2. Sazona con el **Comino** y la **Sal** de tu lista para darle un sabor profundo. 3. Saltea a fuego alto y mezcla con la base cocida."
-        
-        menu["🍴 ALMUERZO"].append({
-            "titulo": f"Salteado de Carne al Comino con {base}",
-            "receta": receta_carne,
-            "img": ""
-        })
-        
+    # --- 2. ALMUERZOS (2 Sencillos + 2 Gourmet) ---
+    if tiene("pasta") or tiene("arroz"):
+        base = "Pasta" if tiene("pasta") else "Arroz"
+        # Sencillos
+        agregar_opcion("🍴 ALMUERZO", f"{base} con Queso", f"1. Cocina la {base}. 2. Agrega queso arriba y deja que el calor lo ablande.")
+        if tiene("carne"):
+            agregar_opcion("🍴 ALMUERZO", f"Bistec con {base}", f"1. Cocina el bistec a la plancha con sal. 2. Acompaña con {base} hervida.")
+            # Gourmet
+            agregar_opcion("🍴 ALMUERZO", f"{base} Salteada con Carne al Comino", f"1. Corta la carne en cubos y saltea con comino y grasa. 2. Mezcla la {base} en el mismo sartén para que absorba el sabor del fondo.", "Gourmet")
         if tiene("queso"):
-            menu["🍴 ALMUERZO"].append({
-                "titulo": "Bistec 'A Caballo' con Queso Fundido",
-                "receta": "1. Cocina el bistec sazonado con sal y comino. 2. Antes de retirar, coloca láminas de queso arriba y tapa el sartén para que se funda. 3. Sirve sobre pasta.",
-                "img": ""
-            })
+            agregar_opcion("🍴 ALMUERZO", f"Gratín de {base} y Atún", "1. Mezcla la base con atún (si tienes) o solo queso. 2. Lleva al sartén tapado hasta que el queso dore en la base.", "Gourmet")
 
-    # --- IDEAS DE CENA ---
-    if tiene("pasta") and tiene("queso"):
-        menu["🌙 CENA"].append({
-            "titulo": "Pasta al Burro con Queso Rallado",
-            "receta": "1. Cocina la pasta al dente. 2. Mezcla con mantequilla (si tienes) o un toque de aceite y sal. 3. Agrega el queso rallado finamente para crear una salsa cremosa simple.",
-            "img": ""
-        })
+    # --- 3. CENAS (2 Sencillos + 2 Gourmet) ---
+    # Sencillos
+    if tiene("pan"):
+        agregar_opcion("🌙 CENA", "Sándwich de Queso", "1. Pan con queso. 2. Pásalo por el sartén para que el pan esté crujiente.")
+    if tiene("huevo") or tiene("queso"):
+        p = "Huevo" if tiene("huevo") else "Queso"
+        agregar_opcion("🌙 CENA", f"Cena rápida de {p}", f"1. Prepara el {p} de forma rápida. 2. Acompaña con lo que tengas a mano.")
+        # Gourmet
+        agregar_opcion("🌙 CENA", f"Tostadas de {p} al Estilo Bistro", f"1. Tuesta el pan con mantequilla por ambos lados. 2. Prepara el {p} con un toque de comino. 3. Sirve estéticamente sobre el pan.", "Gourmet")
 
     return menu
 
@@ -77,22 +76,22 @@ if not st.session_state.auth:
             st.rerun()
     st.stop()
 
-# --- INTERFAZ PRINCIPAL ---
+# --- INTERFAZ ---
 st.title(f"📦 INVENTARIO JYI - {st.session_state.user}")
 
-# --- SECCIÓN RECUPERADA: AGREGAR PRODUCTOS ---
-with st.expander("➕ REGISTRAR NUEVO PRODUCTO", expanded=False):
+# MÓDULO DE REGISTRO
+with st.expander("➕ REGISTRAR NUEVO PRODUCTO"):
     c1, c2 = st.columns(2)
     m_n = c1.selectbox("Lista", ["Comida", "Hogar", "Por Comprar"])
-    n_n = c1.text_input("Nombre del artículo")
+    n_n = c1.text_input("Nombre")
     p_n = c2.number_input("Precio $", min_value=0.0)
-    c_n = c2.number_input("Cantidad", min_value=0) # Permitir 0 para el maíz/pan que vi en tu foto
-    if st.button("💾 GUARDAR EN INVENTARIO", use_container_width=True):
+    c_n = c2.number_input("Cantidad", min_value=0)
+    if st.button("🚀 GUARDAR"):
         if n_n:
             supabase.table("productos").insert({"modulo": m_n, "nombre": n_n.capitalize(), "precio": p_n, "cantidad": c_n, "created_at": datetime.now().isoformat()}).execute()
-            st.success("¡Producto registrado!"); time.sleep(1); st.rerun()
+            st.success("Guardado"); time.sleep(1); st.rerun()
 
-# --- TABLAS DE DATOS ---
+# TABLAS
 res = supabase.table("productos").select("*").order("id").execute()
 df_all = pd.DataFrame(res.data if res.data else [])
 
@@ -103,38 +102,32 @@ for i, tab in enumerate([t1, t2, t3]):
     with tab:
         df = df_all[df_all['modulo'] == listas[i]].copy() if not df_all.empty else pd.DataFrame()
         if not df.empty:
-            edit_df = st.data_editor(df[["id", "nombre", "precio", "cantidad"]], key=f"editor_{listas[i]}", use_container_width=True, hide_index=True)
-            col1, col2 = st.columns(2)
-            if col1.button(f"🔄 Actualizar {listas[i]}", key=f"up_{listas[i]}"):
+            edit_df = st.data_editor(df[["id", "nombre", "precio", "cantidad"]], key=f"ed_{listas[i]}", use_container_width=True, hide_index=True)
+            c1, c2 = st.columns(2)
+            if c1.button(f"💾 Actualizar {listas[i]}", key=f"up_{listas[i]}"):
                 for _, r in edit_df.iterrows():
                     supabase.table("productos").update({"precio": r['precio'], "cantidad": r['cantidad']}).eq("id", r['id']).execute()
                 st.rerun()
-            id_borrar = col2.number_input("ID a eliminar", min_value=0, key=f"del_{listas[i]}")
-            if col2.button(f"🗑️ Eliminar Registro", key=f"btn_del_{listas[i]}"):
-                supabase.table("productos").delete().eq("id", id_borrar).execute(); st.rerun()
+            id_b = c2.number_input("ID a borrar", min_value=0, key=f"del_{listas[i]}")
+            if c2.button(f"🗑️ Eliminar", key=f"btn_{listas[i]}"):
+                supabase.table("productos").delete().eq("id", id_b).execute(); st.rerun()
 
-# --- CHEF DINÁMICO ---
+# --- SECCIÓN CHEF ---
 st.divider()
-st.subheader("👨‍🍳 Ideas del Chef (Mezclas con lo que tienes)")
+st.subheader("👨‍🍳 Sugerencias del Chef (2 Sencillas + 2 Elaboradas)")
 
 if not df_all.empty:
-    # Filtramos solo lo que tiene cantidad > 0
     comida_stock = df_all[(df_all['modulo'] == 'Comida') & (df_all['cantidad'] > 0)]['nombre'].tolist()
     
-    if st.button("🪄 Generar Sugerencias Reales", use_container_width=True):
-        recetas = generar_menu_inteligente(comida_stock)
+    if st.button("🪄 Generar Menú Equilibrado", use_container_width=True):
+        menu = generar_menu_mixto(comida_stock)
         
-        hay_algo = False
-        for cat, platos in recetas.items():
+        for momento, platos in menu.items():
             if platos:
-                hay_algo = True
-                st.markdown(f"### {cat}")
-                cols = st.columns(len(platos) if len(platos) < 3 else 3)
+                st.markdown(f"### {momento}")
+                cols = st.columns(2)
+                # Dividimos en 2 columnas para ver las 4 opciones ordenadas
                 for idx, p in enumerate(platos):
-                    with cols[idx % 3]:
-                        with st.expander(f"⭐ {p['titulo']}"):
-                            st.write(p['img'])
+                    with cols[idx % 2]:
+                        with st.expander(p['titulo']):
                             st.info(p['receta'])
-        
-        if not hay_algo:
-            st.warning("Parece que falta stock de ingredientes base (Harina, Pasta o Carne) para darte ideas elaboradas.")
