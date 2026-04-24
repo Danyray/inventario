@@ -5,52 +5,54 @@ from datetime import datetime
 from supabase import create_client, Client
 
 # --- CONFIGURACIÓN ---
-st.set_page_config(page_title="Inventario Gourmet JYI", layout="wide")
+st.set_page_config(page_title="Inventario JYI - Home", layout="wide")
 
 # --- LÓGICA DEL CHEF CREATIVO (RECETAS ELABORADAS) ---
 def generar_menu_elaborado(productos):
-    # Clasificación avanzada
-    prot = [p.capitalize() for p in productos if any(x in p.capitalize() for x in ["Carne", "Pollo", "Huevo", "Atun", "Cerdo", "Queso", "Mortadela", "Salchicha"])]
-    carb_base = [p.capitalize() for p in productos if any(x in p.capitalize() for x in ["Harina pan", "Trigo", "Pan", "Arroz", "Pasta", "Papa", "Yuca", "Platano"])]
-    extras = [p.capitalize() for p in productos if any(x in p.capitalize() for x in ["Granola", "Mantequilla", "Mayonesa", "Salsa", "Azucar", "Leche"])]
+    # Limpiamos y clasificamos
+    prod_caps = [str(p).capitalize() for p in productos]
+    
+    prot = [p for p in prod_caps if any(x in p for x in ["Carne", "Pollo", "Huevo", "Atun", "Cerdo", "Queso", "Mortadela", "Salchicha"])]
+    carb = [p for p in prod_caps if any(x in p for x in ["Harina pan", "Trigo", "Pan", "Arroz", "Pasta", "Papa", "Yuca", "Platano"])]
+    ext = [p for p in prod_caps if any(x in p for x in ["Granola", "Mantequilla", "Mayonesa", "Salsa", "Azucar", "Leche"])]
 
     menu = {"✨ DESAYUNOS CREATIVOS": [], "👨‍🍳 ALMUERZOS ESPECIALES": [], "🌙 CENAS GOURMET": []}
     
-    # --- 1. DESAYUNOS ELABORADOS ---
-    if "Trigo" in str(carb_base) and "Granola" in str(extras):
+    # 1. DESAYUNOS
+    if any("Trigo" in c for c in carb) and any("Granola" in e for e in ext):
         menu["✨ DESAYUNOS CREATIVOS"].append({
-            "titulo": "Panquecas de Trigo con Topping de Granola Crocante",
-            "receta": "1. Prepara panquecas esponjosas con la Harina de Trigo.\n2. En un sartén, tuesta la Granola con un poco de mantequilla y azúcar para caramelizarla.\n3. Sirve las panquecas con el crocante arriba y un toque de queso fresco.",
+            "titulo": "Panquecas Gourmet con Crocante de Granola",
+            "receta": "1. Haz la mezcla de Harina de Trigo. 2. En un sartén, derrite mantequilla con azúcar y tuesta la Granola hasta que caramelice. 3. Sirve las panquecas bañadas con el crocante dulce.",
             "img": ""
         })
     
-    if "Harina pan" in str(carb_base) and "Carne" in str(prot):
+    if any("Harina pan" in c for c in carb) and any("Carne" in p for p in prot):
         menu["✨ DESAYUNOS CREATIVOS"].append({
-            "titulo": "Arepas con Carne Salteada al Estilo Pelúa",
-            "receta": "1. Prepara arepas bien tostadas.\n2. Corta la carne en tiritas muy finas y saltéala a fuego alto con grasa hasta que dore.\n3. Rellena mezclando la carne caliente con abundante queso rallado para que se funda.",
+            "titulo": "Arepas Pelúas con Carne Salteada",
+            "receta": "1. Cocina la carne en tiritas con un toque de grasa hasta que esté crujiente. 2. Prepara arepas bien tostadas. 3. Rellena mezclando la carne caliente con queso rallado para que se funda por completo.",
             "img": ""
         })
 
-    # --- 2. ALMUERZOS ELABORADOS ---
-    if "Pasta" in str(carb_base) and "Atun" in str(prot):
+    # 2. ALMUERZOS
+    if any("Arroz" in c for c in carb) and any("Pollo" in p for p in prot):
+        menu["👨‍🍳 ALMUERZOS ESPECIALES"].append({
+            "titulo": "Bowl de Arroz Tostado con Pollo al Grill",
+            "receta": "1. Saltea el pollo en cubos con fuego alto. 2. Agrega el arroz ya cocido al sartén para que se tueste con el jugo del pollo. 3. Sirve con un toque de mantequilla para dar brillo y cremosidad.",
+            "img": ""
+        })
+    
+    if any("Pasta" in c for c in carb) and any("Atun" in p for p in prot):
         menu["👨‍🍳 ALMUERZOS ESPECIALES"].append({
             "titulo": "Pasta de la Casa al Gratín de Atún",
-            "receta": "1. Cocina la pasta al dente.\n2. Mezcla el atún con un toque de mayonesa y mantequilla.\n3. Integra todo con la pasta y, si puedes, lleva al sartén para que el queso forme una costra dorada.",
+            "receta": "1. Cocina la pasta al dente. 2. Mezcla el atún con un toque de mayonesa. 3. Integra todo en un sartén caliente y agrega queso encima para que se gratine ligeramente.",
             "img": ""
         })
 
-    if "Arroz" in str(carb_base) and "Pollo" in str(prot):
-        menu["👨‍🍳 ALMUERZOS ESPECIALES"].append({
-            "titulo": "Arroz Salteado Tipo Oriental con Pollo",
-            "receta": "1. Cocina el arroz y déjalo enfriar.\n2. Saltea el pollo en cubos pequeños con fuego máximo.\n3. Agrega el arroz al sartén del pollo y mezcla vigorosamente para que absorba el sabor del dorado.",
-            "img": ""
-        })
-
-    # --- 3. CENAS ELABORADOS ---
-    if "Pan" in str(carb_base) and "Huevo" in str(prot):
+    # 3. CENAS
+    if any("Pan" in c for c in carb) and any("Huevo" in p for p in prot):
         menu["🌙 CENAS GOURMET"].append({
-            "titulo": "Tostadas JYI con Huevo Poché Estilo Bistro",
-            "receta": "1. Tuesta el pan con abundante mantequilla por ambos lados.\n2. Prepara un huevo suave (término medio).\n3. Coloca el huevo sobre el pan y deja que la yema bañe la tostada al cortarlo.",
+            "titulo": "Bruschettas Caseras con Huevo y Mantequilla",
+            "receta": "1. Rebana el pan y tuéstalo con mucha mantequilla hasta que esté dorado. 2. Prepara un huevo a fuego lento para que quede tierno. 3. Colócalo sobre el pan con una pizca de sal.",
             "img": ""
         })
 
@@ -66,7 +68,7 @@ supabase = conectar_supabase()
 # --- LOGIN ---
 if "auth" not in st.session_state: st.session_state.auth = False
 if not st.session_state.auth:
-    st.title("🔐 Acceso")
+    st.title("🔐 Acceso al Sistema")
     with st.form("login"):
         u, p = st.text_input("Usuario").lower().strip(), st.text_input("Contraseña", type="password")
         if st.form_submit_button("Entrar") and u in ["ignacio", "joseilys"] and p == "yosa0325":
@@ -74,37 +76,75 @@ if not st.session_state.auth:
             st.rerun()
     st.stop()
 
-# --- APP ---
+# --- APP PRINCIPAL ---
 st.title(f"📦 INVENTARIO JYI - {st.session_state.user}")
 
-# TABLAS
+# --- REUPERADA: BARRA DE AGREGAR PRODUCTOS ---
+with st.expander("➕ AGREGAR NUEVO PRODUCTO", expanded=False):
+    c1, c2 = st.columns(2)
+    mod_n = c1.selectbox("Lista", ["Comida", "Hogar", "Por Comprar"])
+    nom_n = c1.text_input("Nombre del producto")
+    pre_n = c2.number_input("Precio $", min_value=0.0, step=0.1)
+    can_n = c2.number_input("Cantidad", min_value=1, step=1)
+    if st.button("🚀 GUARDAR PRODUCTO", use_container_width=True):
+        if nom_n:
+            supabase.table("productos").insert({
+                "modulo": mod_n, "nombre": nom_n.capitalize(), 
+                "precio": pre_n, "cantidad": can_n, "created_at": datetime.now().isoformat()
+            }).execute()
+            st.success("¡Guardado correctamente!")
+            time.sleep(1)
+            st.rerun()
+
+# --- VISUALIZACIÓN Y TABLAS ---
 res = supabase.table("productos").select("*").order("id").execute()
 df_all = pd.DataFrame(res.data if res.data else [])
 
-t1, t2, t3 = st.tabs(["🍕 DESPENSA", "🏠 HOGAR", "🛒 COMPRAS"])
-with t1:
-    if not df_all.empty:
-        df_c = df_all[df_all['modulo'] == 'Comida']
-        edit_df = st.data_editor(df_c[["id", "nombre", "precio", "cantidad"]], use_container_width=True, hide_index=True)
-        if st.button("💾 Guardar Cambios"):
-            for _, r in edit_df.iterrows():
-                supabase.table("productos").update({"precio": r['precio'], "cantidad": r['cantidad']}).eq("id", r['id']).execute()
-            st.rerun()
+tabs = st.tabs(["🍕 COMIDA", "🏠 HOGAR", "🛒 POR COMPRAR"])
+listas = ["Comida", "Hogar", "Por Comprar"]
 
-# --- SECCIÓN GOURMET ---
+for i, tab in enumerate(tabs):
+    with tab:
+        df = df_all[df_all['modulo'] == listas[i]].copy() if not df_all.empty else pd.DataFrame()
+        if not df.empty:
+            # Editor de datos
+            edit_df = st.data_editor(df[["id", "nombre", "precio", "cantidad"]], key=f"ed_{listas[i]}", use_container_width=True, hide_index=True)
+            
+            col_save, col_del = st.columns(2)
+            if col_save.button(f"💾 Actualizar {listas[i]}", key=f"btn_upd_{listas[i]}"):
+                for _, r in edit_df.iterrows():
+                    supabase.table("productos").update({"precio": r['precio'], "cantidad": r['cantidad']}).eq("id", r['id']).execute()
+                st.rerun()
+            
+            id_borrar = col_del.number_input("ID a borrar", min_value=0, key=f"del_id_{listas[i]}", step=1)
+            if col_del.button(f"🗑️ Eliminar ID {id_borrar}", key=f"btn_del_{listas[i]}"):
+                supabase.table("productos").delete().eq("id", id_borrar).execute()
+                st.rerun()
+        else:
+            st.info("No hay productos registrados en esta sección.")
+
+# --- SECCIÓN CHEF GOURMET ---
 st.divider()
-st.subheader("👨‍🍳 El Chef Sugiere: Recetas Elaboradas")
+st.subheader("👨‍🍳 Ideas del Chef (Mezclas Elaboradas)")
+
 if not df_all.empty:
-    comida_disponible = df_all[(df_all['modulo'] == 'Comida') & (df_all['cantidad'] > 0)]['nombre'].tolist()
-    if st.button("🪄 Descubrir Platos Especiales", use_container_width=True):
-        recetas = generar_menu_elaborado(comida_disponible)
+    comida_actual = df_all[(df_all['modulo'] == 'Comida') & (df_all['cantidad'] > 0)]['nombre'].tolist()
+    
+    if st.button("🪄 Generar Menú Especial", use_container_width=True):
+        recetas = generar_menu_elaborado(comida_actual)
+        
+        found = False
         for cat, platos in recetas.items():
             if platos:
+                found = True
                 st.markdown(f"### {cat}")
                 for p in platos:
                     with st.expander(f"⭐ {p['titulo']}"):
-                        col1, col2 = st.columns([1, 2])
-                        with col1: st.write(p['img'])
-                        with col2: 
+                        c1, c2 = st.columns([1, 2])
+                        with c1: st.write(p['img'])
+                        with c2:
                             st.write("**Técnica y Preparación:**")
                             st.success(p['receta'])
+        
+        if not found:
+            st.warning("El Chef no encontró combinaciones gourmet con los ingredientes actuales. ¡Intenta agregar más variedad!")
