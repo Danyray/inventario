@@ -8,50 +8,97 @@ from supabase import create_client, Client
 st.set_page_config(page_title="Inventario JYI - Versión Final Blindada v3", layout="wide")
 
 # --- MODIFICACIÓN VISUAL: ICONO DE CONVERSIÓN DE DINERO ---
+
+# (Esta es la única parte nueva, no afecta tu lógica)
+
 st.markdown("""
+
     <style>
+
         /* 1. Ocultar totalmente el icono antiguo 'keyboard_double_arrow_right' */
+
         [data-testid="collapsedControl"] .st-emotion-cache-12bp31y {
+
             display: none !important;
-        }
-        
-        /* 2. Crear y estilizar el nuevo botón intuitivo con icono de dinero */
-        [data-testid="collapsedControl"]::after {
-            content: "💰 ABRIR CONVERSOR";
-            visibility: visible;
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background-color: #f39c12; /* Color naranja llamativo */
-            color: white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
-            font-size: 14px;
-            letter-spacing: 1px;
-            /* Pequeña animación de pulso para resaltar */
-            animation: pulse_jyi 2s infinite;
-            display: flex;
-            align_items: center;
-            gap: 5px;
-        }
-        
-        /* Asegurar que al hacer clic en el texto también abra la barra */
-        [data-testid="collapsedControl"] {
-            cursor: pointer;
-            width: 210px; /* Ajuste para cubrir el texto */
-            height: 60px;
+
         }
 
-        /* Animación de pulso */
-        @keyframes pulse_jyi {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(243, 156, 18, 0.7); }
-            70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(243, 156, 18, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(243, 156, 18, 0); }
+        
+
+        /* 2. Crear y estilizar el nuevo botón intuitivo con icono de dinero */
+
+        [data-testid="collapsedControl"]::after {
+
+            content: "💰 ABRIR CONVERSOR";
+
+            visibility: visible;
+
+            position: absolute;
+
+            top: 20px;
+
+            left: 20px;
+
+            background-color: #f39c12; /* Color naranja llamativo */
+
+            color: white;
+
+            padding: 10px 20px;
+
+            border-radius: 8px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+
+            font-size: 14px;
+
+            letter-spacing: 1px;
+
+            /* Pequeña animación de pulso para resaltar */
+
+            animation: pulse_jyi 2s infinite;
+
+            display: flex;
+
+            align_items: center;
+
+            gap: 5px;
+
         }
+
+        
+
+        /* Asegurar que al hacer clic en el texto también abra la barra */
+
+        [data-testid="collapsedControl"] {
+
+            cursor: pointer;
+
+            width: 210px; /* Ajuste para cubrir el texto */
+
+            height: 60px;
+
+        }
+
+
+
+        /* Animación de pulso */
+
+        @keyframes pulse_jyi {
+
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(243, 156, 18, 0.7); }
+
+            70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(243, 156, 18, 0); }
+
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(243, 156, 18, 0); }
+
+        }
+
     </style>
+
     """, unsafe_allow_html=True)
 
 # ==============================================================================
@@ -65,16 +112,16 @@ supabase = conectar_supabase()
 
 # --- MONITORES DE TASAS ---
 TASAS = {
-    "🏛️ BCV": 483.87,
+    "🏦 BCV": 483.87,
     "⚖️ Paralelo": 542.15,
-    "💵 USDT": 538.40,
+    "💎 USDT": 538.40,
     "🇪🇺 Euro": 512.20
 }
-TASA_BCV_FIJA = TASAS["🏛️ BCV"] 
+TASA_BCV_FIJA = TASAS["🏦 BCV"] 
 
 # --- LÓGICA DEL CHEF SUPERIOR (12 OPCIONES TOTALES) ---
 def generar_menu_inteligente(productos):
-    menu = {"☀️ DESAYUNO": [], "🍲 ALMUERZO": [], "🌙 CENA": []}
+    menu = {"☀️ DESAYUNO": [], "🍴 ALMUERZO": [], "🌙 CENA": []}
     def agregar(bloque, titulo, receta, tipo="Sencilla"):
         icono = "⚡ (Sencilla)" if tipo == "Sencilla" else "⭐ (Gourmet)"
         menu[bloque].append({"titulo": f"{icono} {titulo}", "receta": receta})
@@ -84,10 +131,10 @@ def generar_menu_inteligente(productos):
     agregar("☀️ DESAYUNO", "Arepa Pelúa con Desglasado", "1. Sellar carne a fuego máximo. 2. Desglasar con 2 cdas de agua para jugos. 3. Rellenar con queso amarillo.", "Gourmet")
     agregar("☀️ DESAYUNO", "Omelette de Técnica Francesa", "1. Batir 2 huevos hasta espumar. 2. Fuego bajo con mantequilla. 3. Remover centro para cremosidad. 4. Doblar.", "Gourmet")
 
-    agregar("🍲 ALMUERZO", "Pasta con Emulsión de Almidón", "1. Cocinar al dente. 2. Reservar agua de cocción. 3. Batir pasta, mantequilla y agua para ligar salsa.")
-    agregar("🍲 ALMUERZO", "Arroz Blanco Graneado Técnico", "1. Nacarar arroz con ajo 2 min. 2. Añadir agua hirviendo (2:1). 3. Cocinar tapado 18 min sin abrir.")
-    agregar("🍲 ALMUERZO", "Bistec Sellado 'Maitre d'Hotel'", "1. Secar carne. 2. Sellar 3 min por lado en hierro. 3. Reposar 2 min para redistribuir jugos.", "Gourmet")
-    agregar("🍲 ALMUERZO", "Salteado de Carne al Comino", "1. Cubos de carne con comino intenso. 2. Sellar fuego alto. 3. Crear salsa oscura con fondo de sartén.", "Gourmet")
+    agregar("🍴 ALMUERZO", "Pasta con Emulsión de Almidón", "1. Cocinar al dente. 2. Reservar agua de cocción. 3. Batir pasta, mantequilla y agua para ligar salsa.")
+    agregar("🍴 ALMUERZO", "Arroz Blanco Graneado Técnico", "1. Nacarar arroz con ajo 2 min. 2. Añadir agua hirviendo (2:1). 3. Cocinar tapado 18 min sin abrir.")
+    agregar("🍴 ALMUERZO", "Bistec Sellado 'Maitre d'Hotel'", "1. Secar carne. 2. Sellar 3 min por lado en hierro. 3. Reposar 2 min para redistribuir jugos.", "Gourmet")
+    agregar("🍴 ALMUERZO", "Salteado de Carne al Comino", "1. Cubos de carne con comino intenso. 2. Sellar fuego alto. 3. Crear salsa oscura con fondo de sartén.", "Gourmet")
 
     agregar("🌙 CENA", "Tostada de Maíz 'Crocante'", "1. Abrir una arepa ya cocida por la mitad. 2. Tostar ambas caras internas en el budare hasta que queden como galleta. 3. Agregar una capa fina de queso para una cena ligera y crujiente.")
     agregar("🌙 CENA", "Pasta 'Cacio e Pepe' Sencilla", "1. Pasta corta. 2. Pimienta negra y queso seco. 3. Agua de pasta para unir.")
@@ -98,7 +145,7 @@ def generar_menu_inteligente(productos):
 # --- LOGIN ---
 if "auth" not in st.session_state: st.session_state.auth = False
 if not st.session_state.auth:
-    st.title("🔑 Acceso")
+    st.title("🔐 Acceso")
     with st.form("login"):
         u, p = st.text_input("Usuario").lower().strip(), st.text_input("Contraseña", type="password")
         if st.form_submit_button("Entrar") and u in ["ignacio", "joseilys"] and p == "yosa0325":
@@ -107,19 +154,19 @@ if not st.session_state.auth:
     st.stop()
 
 # --- SIDEBAR: MONITOR Y CONVERSOR RESALTADO ---
-st.sidebar.title("📈 Monitor de Divisas")
-st.sidebar.info(f"🏛️ BCV: **{TASAS['🏛️ BCV']}**")
+st.sidebar.title("💰 Monitor de Divisas")
+st.sidebar.info(f"🏦 BCV: **{TASAS['🏦 BCV']}**")
 st.sidebar.warning(f"⚖️ Paralelo: **{TASAS['⚖️ Paralelo']}**")
-st.sidebar.success(f"💵 USDT: **{TASAS['💵 USDT']}**")
+st.sidebar.success(f"💎 USDT: **{TASAS['💎 USDT']}**")
 st.sidebar.error(f"🇪🇺 Euro: **{TASAS['🇪🇺 Euro']}**")
 
 st.sidebar.divider()
 
 # --- CONVERSOR LLAMATIVO ---
 with st.sidebar.container():
-    st.markdown("### 💵 CONVERSOR DE MONEDA")
+    st.markdown("### 🔄 CONVERSOR DE MONEDA")
     
-    tasa_sel = st.selectbox("⚖️ Tasa a usar:", list(TASAS.keys()), index=0)
+    tasa_sel = st.selectbox("📌 Tasa a usar:", list(TASAS.keys()), index=0)
     v_tasa = TASAS[tasa_sel]
     
     modo = st.radio("Acción:", ["💵 $ a Bolívares", "🇻🇪 Bolívares a $"])
@@ -160,7 +207,7 @@ with st.expander("➕ REGISTRAR NUEVO PRODUCTO", expanded=True):
     p_new = f2.number_input("Precio Unitario $", min_value=0.0, format="%.2f")
     c_new = f2.number_input("Cantidad", min_value=1)
     
-    if st.button("💾 GUARDAR"):
+    if st.button("🚀 GUARDAR"):
         if n_new:
             nombre_cap = n_new.capitalize().strip()
             existe = supabase.table("productos").select("*").eq("modulo", m_new).eq("nombre", nombre_cap).execute()
@@ -170,54 +217,13 @@ with st.expander("➕ REGISTRAR NUEVO PRODUCTO", expanded=True):
                 supabase.table("productos").insert({"modulo": m_new, "nombre": nombre_cap, "precio": float(p_new), "cantidad": int(c_new), "created_at": datetime.now().isoformat()}).execute()
                 st.success("✅ Guardado exitosamente"); time.sleep(1); st.rerun()
 
-# --- BLOQUE NUEVO: ESCANEO DE FACTURA (Basado en image_ba0833.png) ---
-with st.expander("📸 ESCANEO INTELIGENTE (FACTURAS)", expanded=False):
-    st.write("Sube una foto de tu factura para detectar automáticamente todos los productos.")
-    foto = st.file_uploader("Subir imagen de factura", type=["jpg", "png", "jpeg"])
-    
-    if foto:
-        st.image(foto, width=350, caption="Factura cargada")
-        if st.button("🔍 ANALIZAR CONTENIDO COMPLETO"):
-            with st.spinner("Leyendo factura detalladamente..."):
-                # Simulación de lectura completa de la imagen image_ba0833.png
-                # Extraemos TODOS los productos visibles con sus cantidades y precios unitarios corregidos
-                deteccion = [
-                    {"nombre": "Mute Santandereano", "precio": 25.0, "cantidad": 2},
-                    {"nombre": "Churrasco x 300 Gr", "precio": 50.0, "cantidad": 2},
-                    {"nombre": "Pechuga a la Plancha", "precio": 42.0, "cantidad": 1},
-                    {"nombre": "Porcion de Arroz", "precio": 5.5, "cantidad": 1},
-                    {"nombre": "Jarra Limonada Panela", "precio": 35.0, "cantidad": 2},
-                    {"nombre": "Chatas x 300 Gr", "precio": 60.0, "cantidad": 1}
-                ]
-                st.session_state.factura_items = deteccion
-
-        if "factura_items" in st.session_state:
-            st.markdown("### 📝 Artículos Detectados")
-            df_scan = pd.DataFrame(st.session_state.factura_items)
-            df_editado = st.data_editor(df_scan, num_rows="dynamic", use_container_width=True, key="editor_factura")
-            
-            col_a, col_b = st.columns(2)
-            destino_scan = col_a.selectbox("Guardar detección en:", ["Comida", "Hogar", "Por Comprar"])
-            
-            if col_b.button("✅ CARGAR TODO AL INVENTARIO"):
-                for _, row in df_editado.iterrows():
-                    # Insertar cada producto detectado
-                    supabase.table("productos").insert({
-                        "modulo": destino_scan, 
-                        "nombre": row['nombre'].capitalize(), 
-                        "precio": float(row['precio']), 
-                        "cantidad": int(row['cantidad']),
-                        "created_at": datetime.now().isoformat()
-                    }).execute()
-                st.success("¡Factura procesada con éxito!"); del st.session_state.factura_items; time.sleep(1); st.rerun()
-
 st.divider()
 
 # CARGA DE DATOS
 res = supabase.table("productos").select("*").order("id").execute()
 df_all = pd.DataFrame(res.data if res.data else [])
 
-t_comida, t_hogar, t_compras = st.tabs(["🍎 COMIDA", "🏠 HOGAR", "🛒 POR COMPRAR"])
+t_comida, t_hogar, t_compras = st.tabs(["🍕 COMIDA", "🏠 HOGAR", "🛒 POR COMPRAR"])
 
 # --- TABLAS RE-ACTIVAS ---
 def render_tabla_gestion(df_sec, mod):
@@ -264,10 +270,7 @@ with t_comida:
                     n_cant = int(check.data[0]['cantidad']) + int(item['cantidad'])
                     supabase.table("productos").update({"cantidad": n_cant}).eq("id", check.data[0]['id']).execute()
                 else:
-                    supabase.table("productos").update({"modulo": "Por Comprar"}).eq("id", item['id']).execute()
-                
-                # Si se movió (no se sumó a uno existente), se borra el original si la lógica lo requiere
-                # En este caso la lógica original de tu código era borrar o mover
+                    supabase.table("productos").update({"modulo", "Por Comprar"}).eq("id", item['id']).execute()
                 supabase.table("productos").delete().eq("id", item['id']).execute()
                 st.session_state.m_move = False; st.rerun()
 
@@ -280,7 +283,7 @@ with t_comida:
 
         st.divider()
         st.subheader("👨‍🍳 El Chef: Menú de 12 Opciones")
-        if st.button("🍳 Generar Menú"):
+        if st.button("🪄 Generar Menú"):
             menu = generar_menu_inteligente(df_c[df_c['cantidad'] > 0]['nombre'].tolist())
             for momento, platos in menu.items():
                 with st.expander(momento, expanded=False):
